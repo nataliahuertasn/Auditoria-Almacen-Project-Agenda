@@ -20,8 +20,8 @@
     D5  Cualquier usuario puede solicitar; solo el rol Stockroom edita o rechaza (selector "Viewing as").
     D6  Se agrega el estado Rejected, con motivo, para cerrar solicitudes erradas.
     D7  Los BOM existentes conservan sus valores: editar un código no los modifica.
-    D8  Excel de dos hojas. "Codes" filtra por fecha de solicitud del código y muestra la última modificación
-        completada. "Modification Details" filtra por fecha de solicitud de la modificación, con una fila por campo.
+    D8  Excel de dos hojas. "Code Requests" tiene una fila por cada solicitud, aunque sean del mismo usuario y día,
+        filtra por fecha de solicitud y muestra la última modificación completada. "Modification Details" filtra por fecha de solicitud de la modificación, con una fila por campo.
     D9  SAP Movement solo admite dígitos, se guarda como texto y es obligatorio para marcar el check de SAP.
         Las entregas antiguas quedan vacías y se pueden completar, incluso en BOM cerrados.
 -->
@@ -294,7 +294,12 @@ const codes=[
   {id:'c5',paCode:'PA-01266',sapCode:'90003790',description:'ACM PANEL 4MM',color:'White',alloy:'3003',uom:'M2',quantity:300,requestedBy:'Laura Mendoza',requestedAt:mon(-3,14,10,0),createdAt:mon(-3,15,9,20),status:'Approved',notes:'Podium level'},
   {id:'c6',paCode:'PA-01311',sapCode:'',description:'EPDM GASKET 12MM BLACK',color:'Black',alloy:'',uom:'M',quantity:500,requestedBy:'Laura Mendoza',requestedAt:cur(1,8,20),createdAt:null,status:'Pending',notes:'Awaiting SAP creation'},
   {id:'c7',paCode:'PA-01312',sapCode:'',description:'SILICONE SEALANT GRAY',color:'Gray',alloy:'',uom:'UN',quantity:48,requestedBy:'Andrés Pineda',requestedAt:cur(0,7,55),createdAt:null,status:'Pending',notes:''},
-  {id:'c8',paCode:'PA-01299',sapCode:'',description:'SS 304 SCREW 1/4 X 1',color:'',alloy:'304',uom:'UN',quantity:1000,requestedBy:'Andrés Pineda',requestedAt:cur(3,15,40),createdAt:null,status:'Rejected',notes:'Already exists in SAP as 90002215'}
+  {id:'c8',paCode:'PA-01299',sapCode:'',description:'SS 304 SCREW 1/4 X 1',color:'',alloy:'304',uom:'UN',quantity:1000,requestedBy:'Andrés Pineda',requestedAt:cur(3,15,40),createdAt:null,status:'Rejected',notes:'Already exists in SAP as 90002215'},
+  /* Varias solicitudes del mismo usuario el mismo día: cada una es un registro aparte */
+  {id:'c9',paCode:'PA-01306',sapCode:'',description:'ALUMINUM SHEET 3MM',color:'Mill Finish',alloy:'5052',uom:'M2',quantity:20,requestedBy:'Andrés Pineda',requestedAt:cur(2,11,35),createdAt:null,status:'Pending',notes:'Additional quantity for level 4'},
+  {id:'c10',paCode:'PA-01307',sapCode:'',description:'ALUMINUM SHEET 3MM',color:'Mill Finish',alloy:'5052',uom:'M2',quantity:12,requestedBy:'Andrés Pineda',requestedAt:cur(2,11,50),createdAt:null,status:'Pending',notes:'Additional quantity for level 5'},
+  {id:'c11',paCode:'PA-01308',sapCode:'',description:'THERMAL BREAK 24MM',color:'Black',alloy:'',uom:'M',quantity:200,requestedBy:'Andrés Pineda',requestedAt:cur(2,14,10),createdAt:null,status:'Pending',notes:''},
+  {id:'c12',paCode:'PA-01309',sapCode:'',description:'SETTING BLOCK 100MM',color:'Black',alloy:'',uom:'UN',quantity:350,requestedBy:'Andrés Pineda',requestedAt:cur(2,14,12),createdAt:null,status:'Pending',notes:''}
 ];
 const reqs=[
   {id:'MR-0001',codeId:'c1',fields:['Description'],details:'Use the generic crate name.',reason:'Name did not match the SAP catalog.',status:'Completed',prevStatus:'Approved',requestedBy:'Andrés Pineda',requestedAt:mon(-1,12,9,10),completedBy:'Carolina Ruiz',completedAt:mon(-1,12,16,30),rejectReason:'',
@@ -632,27 +637,27 @@ function refreshReport(){
   $('#bRep').disabled=bad;
   if(bad){$('#rCounts').innerHTML='';return;}
   const d=reportData(r);
-  $('#rCounts').innerHTML=`<div><b>${d.codes.length}</b><span>Codes requested</span></div><div><b>${d.mods.length}</b><span>Modification requests</span></div>`;
+  $('#rCounts').innerHTML=`<div><b>${d.codes.length}</b><span>Code requests</span></div><div><b>${d.mods.length}</b><span>Modification requests</span></div>`;
 }
 const xlDate=d=>d?{t:'n',v:(d.getTime()-d.getTimezoneOffset()*60000)/86400000+25569,z:'mm/dd/yyyy hh:mm AM/PM'}:null;
 const orNull=v=>v===''||v==null?null:v;
 function buildWorkbook(r){
   const d=reportData(r), wb=XLSX.utils.book_new();
-  /* DECISIÓN D8: una fila por código, con la última modificación completada */
-  const h1=['Requested Code','Description','Quantity Created','Request Date','Requested By','Creation Date','SAP Code','Notes','Status','Color','Alloy','Unit of Measure',
-    'Has Modifications','Modification Count','Modification Request Date','Modification Requested By','Modified By','Modification Date','Modification Reason','What Was Modified'];
+  /* DECISIÓN D8: una fila por solicitud, con la última modificación completada */
+  const h1=['Description','Quantity Created','Request Date','Requested By','Creation Date','SAP Code','Notes',
+    'Has Modifications','Modification Request Date','Modification Requested By','Modified By','Modification Date','Modification Reason','What Was Modified'];
   const s1=d.codes.map(c=>{
     const done=reqsOf(c.id).filter(x=>x.status==='Completed'), m=done[0];
-    return [c.paCode,c.description,c.quantity,xlDate(c.requestedAt),c.requestedBy,xlDate(c.createdAt),orNull(c.sapCode),orNull(c.notes),c.status,orNull(c.color),orNull(c.alloy),orNull(c.uom),
-      done.length?'Yes':'No',done.length,
+    return [c.description,c.quantity,xlDate(c.requestedAt),c.requestedBy,xlDate(c.createdAt),orNull(c.sapCode),orNull(c.notes),
+      done.length?'Yes':'No',
       m?xlDate(m.requestedAt):null,m?m.requestedBy:null,m?m.completedBy:null,m?xlDate(m.completedAt):null,m?m.reason:null,
       m?m.changes.map(x=>`${x.field}: ${x.from||'(empty)'} → ${x.to||'(empty)'}`).join('; '):null];
   });
   /* Una fila por campo cambiado; las solicitudes sin cambios ocupan una fila */
-  const h2=['Request ID','Requested Code','SAP Code','Description','Request Status','Requested Fields','Change Details','Reason','Requested By','Request Date','Modified By','Modification Date','Field','Previous Value','New Value','Rejection Reason'];
+  const h2=['SAP Code','Description','Request Status','Requested Fields','Change Details','Reason','Requested By','Request Date','Modified By','Modification Date','Field','Previous Value','New Value','Rejection Reason'];
   const s2=d.mods.flatMap(m=>{
     const c=codeOf(m.codeId);
-    const base=[m.id,c.paCode,orNull(c.sapCode),c.description,m.status,m.fields.join(', '),m.details,m.reason,m.requestedBy,xlDate(m.requestedAt),orNull(m.completedBy),xlDate(m.completedAt)];
+    const base=[orNull(c.sapCode),c.description,m.status,m.fields.join(', '),m.details,m.reason,m.requestedBy,xlDate(m.requestedAt),orNull(m.completedBy),xlDate(m.completedAt)];
     return m.changes.length?m.changes.map(x=>[...base,x.field,orNull(x.from),orNull(x.to),null]):[[...base,null,null,null,orNull(m.rejectReason)]];
   });
   const sheet=(head,rows,widths)=>{
@@ -661,8 +666,8 @@ function buildWorkbook(r){
     ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:rows.length,c:head.length-1}})};
     return ws;
   };
-  XLSX.utils.book_append_sheet(wb,sheet(h1,s1,[14,34,10,19,20,19,12,28,22,14,10,10,12,12,19,22,20,19,36,46]),'Codes');
-  XLSX.utils.book_append_sheet(wb,sheet(h2,s2,[11,14,12,34,12,20,40,36,20,19,20,19,18,22,22,34]),'Modification Details');
+  XLSX.utils.book_append_sheet(wb,sheet(h1,s1,[34,10,19,20,19,12,28,12,19,22,20,19,36,46]),'Code Requests');
+  XLSX.utils.book_append_sheet(wb,sheet(h2,s2,[12,34,12,20,40,36,20,19,20,19,18,22,22,34]),'Modification Details');
   return wb;
 }
 function downloadReport(){

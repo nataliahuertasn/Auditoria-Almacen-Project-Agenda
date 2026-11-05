@@ -12,7 +12,7 @@ Abra `index.html` en el navegador (doble clic). Necesita internet para cargar la
 
 - **Code Request:** lista de códigos, botón *Request Modification*, historial por código y botón *Report*.
 - **Modification Requests (pestaña nueva):** solicitudes con estado Pending, Completed o Rejected, edición del código con vista previa de cambios y detalle de auditoría.
-- **Report:** Excel con rango de fechas, por defecto el mes actual, y dos hojas: *Codes* y *Modification Details*.
+- **Report:** Excel con rango de fechas, por defecto el mes actual, y dos hojas: *Code Requests* y *Modification Details*.
 - **Open BOM y Closed BOMs:** detalle del BOM con la columna *SAP Movement* junto al check de SAP.
 - **Viewing as (encabezado):** cambia de usuario para probar permisos. Solo el rol Stockroom edita o rechaza solicitudes.
 
@@ -30,7 +30,7 @@ Están marcadas como `DECISIÓN` en `index.html`.
 | Permisos | Cualquiera solicita; solo Stockroom edita o rechaza |
 | Solicitudes erradas | Se agrega el estado Rejected, con motivo |
 | BOM existentes | Conservan sus valores al editar un código |
-| Hoja Codes | Filtra por fecha de solicitud del código y muestra la última modificación completada |
+| Hoja Code Requests | Una fila por cada solicitud, aunque sean del mismo usuario y día, sin identificador; filtra por fecha de solicitud y muestra la última modificación completada |
 | Hoja Modification Details | Filtra por fecha de solicitud de la modificación, con una fila por campo cambiado |
 | SAP Movement | Solo dígitos y obligatorio para marcar el check; las entregas antiguas se pueden completar |
 | Quantity Created, PA Code, Color, Alloy y Unit of Measure | Campos supuestos: falta validarlos contra el modelo real |
