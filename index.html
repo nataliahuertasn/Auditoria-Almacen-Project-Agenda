@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stock Room Audit</title>
+<!--
+  MAQUETA INTERACTIVA — Auditoría de almacén en Project Agenda
+  Modificación de códigos, reporte de códigos en Excel y SAP Movement en Bill of Materials.
+
+  Prototipo 100% front-end: no hay backend, base de datos ni conexión con SAP.
+  Todos los datos y personas son ficticios y se reinician al recargar la página.
+
+  Decisiones tomadas donde el requerimiento es ambiguo (buscar "DECISIÓN" en el código):
+    D1  CODE REQUEST lista todos los códigos. Las pestañas Approved / On Hold / Rejected parecen ser de
+        reservas (la ruta real es /stock-room/reserves-rejected), por eso no se tocan.
+    D2  Request Modification solo aparece en códigos que ya tienen código SAP.
+    D3  Un código con una solicitud pendiente no admite otra, pero se puede seguir usando.
+    D4  Al completar o rechazar una solicitud, el código vuelve al estado que tenía antes.
+    D5  Cualquier usuario puede solicitar; solo el rol Stockroom edita o rechaza (selector "Viewing as").
+    D6  Se agrega el estado Rejected, con motivo, para cerrar solicitudes erradas.
+    D7  Los BOM existentes conservan sus valores: editar un código no los modifica.
+    D8  Excel de dos hojas. "Codes" filtra por fecha de solicitud del código y muestra la última modificación
+        completada. "Modification Details" filtra por fecha de solicitud de la modificación, con una fila por campo.
+    D9  SAP Movement solo admite dígitos, se guarda como texto y es obligatorio para marcar el check de SAP.
+        Las entregas antiguas quedan vacías y se pueden completar, incluso en BOM cerrados.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Saira+Semi+Condensed:wght@600;700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  color-scheme:light;
+  --primary:#1976d2; --primary-d:#115ea8; --primary-l:#e3eefa;
+  --bg:#f7f7f7; --panel:#fff; --rail:#f1f1f1; --head:#eeeeee; --line:#e0e0e0;
+  --text:#212121; --muted:#616161; --muted2:#9e9e9e;
+  --danger:#e53935; --danger-l:#fdecea; --ok:#2e7d32; --ok-l:#e8f5e9; --warn:#b25e00; --warn-l:#fff4e5;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--text);font:14px/1.45 Roboto,system-ui,"Segoe UI",Arial,sans-serif}
+button{font:inherit;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+svg.i{width:20px;height:20px;fill:currentColor;flex:none;vertical-align:middle}
+.app{display:flex;flex-direction:column;min-height:100vh}
+
+/* Header */
+header.top{display:flex;align-items:center;gap:16px;padding:8px 20px 8px 4px;background:#fafafa}
+.logo{display:flex;align-items:center;gap:6px;font-family:'Saira Semi Condensed',sans-serif;font-weight:700;font-size:31px;line-height:1;letter-spacing:.3px;color:#0d3b5c}
+.logo .mark{width:30px;height:30px;border:3px solid #0d3b5c;position:relative;overflow:hidden}
+.logo .mark:after{content:"";position:absolute;left:-6px;top:11px;width:44px;height:3px;background:#0d3b5c;transform:rotate(-45deg)}
+.top .sp{flex:1}
+.viewas{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);white-space:nowrap}
+.viewas select{border:1px solid #bdbdbd;border-radius:4px;padding:5px 6px;background:#fff;font-size:13px;max-width:230px}
+.top-search{display:flex;align-items:center;gap:8px;border:1px solid #9e9e9e;border-radius:24px;padding:7px 14px;color:var(--muted);width:280px;background:#fff}
+.top-search input{border:0;outline:0;width:100%;background:none}
+.iconbtn{background:none;border:0;padding:6px;border-radius:50%;color:#555;position:relative;display:inline-flex}
+.iconbtn:hover{background:#0000000d}
+.iconbtn:focus-visible,.btn:focus-visible,.tab:focus-visible,.pill:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.iconbtn svg.i{width:30px;height:30px}
+.badge{position:absolute;top:-2px;right:-4px;background:var(--danger);color:#fff;font-size:11px;border-radius:10px;padding:0 6px;line-height:18px;font-weight:500}
+
+/* Layout */
+.body{flex:1;display:flex;min-width:0}
+.rail{width:64px;flex:none;background:var(--rail);display:flex;flex-direction:column;align-items:center;gap:14px;padding:8px 0}
+.rail .es{font-size:8px;font-weight:700;letter-spacing:.3px;color:#6aa9d8;background:#fff;padding:7px 5px;border-radius:2px}
+.rail button{position:relative;background:none;border:0;padding:8px;color:#555;display:inline-flex}
+.rail button.on{color:var(--primary)}
+.rail svg.i{width:26px;height:26px}
+.rail .badge{top:-5px;right:-8px}
+.rail .end{margin-top:auto}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.tabs{display:flex;background:var(--head);overflow-x:auto;scrollbar-width:none}
+.tab{border:0;background:none;padding:18px 20px;font:600 15px 'Open Sans',Roboto,sans-serif;letter-spacing:1.1px;color:#6a6a6a;text-transform:uppercase;white-space:nowrap;display:flex;align-items:center;gap:8px}
+.tab:hover{background:#e4e4e4}
+.tab.on{background:#fff;color:var(--primary)}
+.tab .count{background:var(--danger);color:#fff;border-radius:10px;font-size:11px;line-height:18px;min-width:18px;padding:0 5px;letter-spacing:0;text-align:center}
+.page{flex:1;padding:20px;background:#fff;min-width:0}
+footer{display:flex;justify-content:flex-end;padding:10px 20px;background:#fafafa;font-size:14px}
+
+/* Toolbar y tablas */
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;min-height:36px}
+.bar .sp{flex:1}
+.bar h2{margin:0;font-size:18px;font-weight:500}
+.card{border:1px solid var(--line);border-radius:6px;background:#fff}
+.tw{overflow-x:auto}
+table.t{width:100%;border-collapse:collapse}
+table.t th{background:var(--head);color:#555;font-size:13px;font-weight:700;letter-spacing:.2px;text-transform:uppercase;padding:18px 14px;text-align:left;white-space:nowrap;position:relative}
+table.t td{padding:13px 14px;border-top:1px solid var(--line);vertical-align:middle;font-size:14px}
+table.t tr.link{cursor:pointer}
+table.t tr.link:hover td{background:#f5f9fd}
+table.t .c{text-align:center}
+table.t .r{text-align:right}
+.nodata{text-align:center;color:var(--muted2);padding:18px!important}
+.w-code{white-space:nowrap}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+.thbtn{border:0;background:none;padding:2px 4px;color:inherit;font:inherit;text-transform:inherit;display:inline-flex;align-items:center;gap:6px}
+.thbtn svg.i{width:16px;height:16px;transition:transform .15s}
+.thbtn.desc svg.i{transform:rotate(180deg)}
+.menu{position:absolute;z-index:20;top:44px;left:8px;background:#fff;border-radius:4px;box-shadow:0 6px 20px #0003;padding:6px 0;min-width:210px;text-transform:none;letter-spacing:0}
+.menu button{display:block;width:100%;text-align:left;background:none;border:0;padding:8px 14px;font-size:14px;font-weight:400;color:var(--text)}
+.menu button:hover{background:#f1f1f1}
+.menu button.on{color:var(--primary);font-weight:500}
+
+/* Botones y estados */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:20px;padding:8px 18px;font-weight:700;font-size:13px;letter-spacing:.4px;text-transform:uppercase;background:var(--primary);color:#fff;white-space:nowrap}
+.btn:hover{background:var(--primary-d)}
+.btn svg.i{width:18px;height:18px}
+.btn.line{background:#fff;color:var(--primary);box-shadow:inset 0 0 0 1px var(--primary)}
+.btn.line:hover{background:var(--primary-l)}
+.btn.text{background:none;color:var(--muted)}
+.btn.text:hover{background:#0000000a}
+.btn.red{background:#fff;color:var(--danger);box-shadow:inset 0 0 0 1px var(--danger)}
+.btn.red:hover{background:var(--danger-l)}
+.btn.sm{padding:5px 12px;font-size:11.5px}
+.btn:disabled{background:#e0e0e0;color:#8a8a8a;box-shadow:none;cursor:not-allowed}
+.acts{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
+.hist{position:relative;background:none;border:0;padding:5px;border-radius:50%;color:var(--primary);display:inline-flex}
+.hist:hover{background:var(--primary-l)}
+.hist .n{position:absolute;top:-3px;right:-3px;background:var(--primary);color:#fff;font-size:10px;line-height:15px;min-width:15px;border-radius:8px;text-align:center}
+.st{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:500;white-space:nowrap;background:#eee;color:#555}
+.st.Approved,.st.Completed{background:var(--ok-l);color:var(--ok)}
+.st.Pending{background:var(--warn-l);color:var(--warn)}
+.st.Rejected{background:var(--danger-l);color:#b71c1c}
+.st.ModificationRequested{background:var(--primary-l);color:var(--primary-d)}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{border:1px solid #bdbdbd;background:#fff;color:var(--muted);border-radius:16px;padding:5px 14px;font-size:13px}
+.pill.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-width:170px;max-width:280px}
+.req b{font-weight:500}
+.empty{color:var(--muted2);text-align:center;padding:70px 20px}
+
+/* Modales */
+.ov{position:fixed;inset:0;background:#0007;display:flex;align-items:flex-start;justify-content:center;padding:32px 16px;overflow:auto;z-index:50}
+.modal{background:#fff;border-radius:6px;width:min(560px,100%);box-shadow:0 8px 28px #0004}
+.modal.wide{width:min(820px,100%)}
+.mh{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:18px 24px 10px}
+.mh h3{margin:0;font-size:20px;font-weight:500}
+.mb{padding:6px 24px 12px}
+.mf{display:flex;justify-content:flex-end;gap:8px;padding:12px 24px 20px}
+.info{background:#f5f5f5;border-radius:4px;padding:10px 14px;margin:0 0 16px;font-size:13px}
+.info .l{color:var(--muted);font-weight:500}
+.info div+div{margin-top:3px}
+.fl{display:block;margin-bottom:16px}
+.fl>span,.lg{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:4px}
+.fl input,.fl textarea{width:100%;border:0;border-bottom:1px solid #9e9e9e;background:none;padding:5px 0 6px;outline:0;font-size:15px}
+.fl textarea{resize:vertical;min-height:62px}
+.fl input:focus,.fl textarea:focus{border-bottom:2px solid var(--primary)}
+.fl.bad input,.fl.bad textarea{border-bottom:2px solid var(--danger)}
+.err{color:#c62828;font-size:12px;margin-top:3px;min-height:0}
+.req-star{color:var(--danger)}
+.checks{display:flex;gap:6px 20px;flex-wrap:wrap;margin-bottom:16px}
+.checks label{display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer}
+input[type=checkbox]{accent-color:var(--primary);width:18px;height:18px;margin:0;cursor:pointer}
+input[type=checkbox]:disabled{cursor:default;accent-color:#9e9e9e}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 24px}
+.grid2 .full{grid-column:1/-1}
+.diffbox{border:1px solid var(--line);border-radius:4px;margin-top:2px}
+.diffbox h4{margin:0;padding:9px 12px;font-size:13px;font-weight:700;background:var(--head);text-transform:uppercase;color:#555;border-radius:4px 4px 0 0}
+table.d{width:100%;border-collapse:collapse;font-size:13px}
+table.d th{text-align:left;padding:7px 12px;color:var(--muted);font-weight:500;font-size:12px}
+table.d td{padding:7px 12px;border-top:1px solid var(--line);word-break:break-word}
+table.d .old{color:#8a8a8a;text-decoration:line-through}
+.diffbox .none{padding:10px 12px;color:var(--muted2);font-size:13px}
+.warn{background:var(--warn-l);color:#7a4100;border-radius:4px;padding:8px 12px;font-size:13px;margin:12px 0 0}
+.hitem{border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-bottom:12px}
+.hitem .hh{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.hitem .kv{font-size:13px;margin:2px 0}
+.hitem .kv .l{color:var(--muted)}
+.hitem .diffbox{margin-top:8px}
+.counts{display:flex;gap:12px;flex-wrap:wrap;margin-top:2px}
+.counts div{flex:1 1 180px;background:#f5f5f5;border-radius:4px;padding:10px 14px}
+.counts b{display:block;font-size:22px;font-weight:500}
+.counts span{font-size:12px;color:var(--muted)}
+
+/* Detalle BOM */
+.bomh{display:flex;align-items:center;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:24px}
+.bomh h2{margin:0;font-size:32px;font-weight:400;line-height:1.2}
+.bomh h2 b{font-weight:700}
+.bomh .iconbtn{color:var(--primary)}
+.bominfo{display:grid;grid-template-columns:1fr 1fr 170px;gap:12px 24px;margin-bottom:36px;color:var(--muted);font-size:16px}
+.bominfo b{font-weight:700}
+.bominfo p{margin:0 0 20px}
+.bnotes{display:flex;gap:12px;align-items:flex-start;color:var(--text)}
+.bnotes>div{flex:1;border-bottom:1px solid #9e9e9e;padding-bottom:6px;max-width:580px}
+.qr{width:160px;height:160px;justify-self:end}
+.items{background:var(--head);border-radius:6px;border:1px solid var(--line)}
+.items h3{margin:0;padding:24px 34px 22px;font-size:24px;font-weight:700}
+table.it{width:100%;border-collapse:collapse;min-width:1020px}
+table.it>thead th{font-size:14px;color:#555;text-transform:uppercase;padding:14px 10px;text-align:center;white-space:nowrap}
+table.it>tbody>tr.row>td{background:#fff;padding:8px 10px;text-align:center;border-top:1px solid #ddd;font-size:17px}
+table.it .desc{text-align:left}
+table.it td.notes{font-size:16px;min-width:300px}
+.dwrap{background:#fff;padding:20px}
+.dbox{background:#fff;border:1px solid #e9e9e9;border-radius:6px}
+table.dv{width:100%;border-collapse:collapse;table-layout:fixed}
+table.dv th{background:var(--head);font-size:14px;color:#555;text-transform:uppercase;padding:20px 8px;text-align:center}
+table.dv td{padding:16px 8px;text-align:center;border-top:1px solid #eee;font-size:16px;vertical-align:top;word-break:break-word}
+
+.mov input{width:100%;max-width:150px;border:0;border-bottom:1px solid #9e9e9e;text-align:center;padding:3px 2px;outline:0;background:none;font-size:15px}
+.mov input:focus{border-bottom:2px solid var(--primary)}
+.mov.bad input{border-bottom:2px solid var(--danger)}
+.movv{display:inline-flex;align-items:center;gap:4px}
+.movv button{border:0;background:none;color:var(--primary);padding:2px;display:inline-flex}
+.movv button svg.i{width:15px;height:15px}
+.hintbar{background:var(--primary-l);color:#0c4a86;font-size:13px;border-radius:4px;padding:8px 12px;margin:0 0 14px}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#323232;color:#fff;padding:10px 18px;border-radius:4px;box-shadow:0 4px 14px #0005;z-index:80;max-width:calc(100vw - 32px)}
+.toast.bad{background:#b71c1c}
+
+@media (max-width:900px){
+  .top-search{display:none}
+  .logo{font-size:23px}
+  .logo .mark{width:24px;height:24px}
+  .bominfo{grid-template-columns:1fr}
+  .qr{justify-self:start}
+  .bomh h2{font-size:22px}
+}
+@media (max-width:640px){
+  header.top{padding:8px 16px;flex-wrap:wrap;gap:8px}
+  .viewas{order:3;width:100%}
+  .viewas select{flex:1;max-width:none}
+  .rail{display:none}
+  .page{padding:16px}
+  .tab{padding:14px 12px;font-size:13px}
+  .grid2{grid-template-columns:1fr}
+  .mh,.mb,.mf{padding-left:16px;padding-right:16px}
+  .ov{padding:12px}
+  .dwrap{padding:10px}
+  table.dv{min-width:760px}
+  .items h3{padding:16px}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="modal"></div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* ---------- Utilidades ---------- */
+const P={
+  search:"M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z",
+  bell:"M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z",
+  account:"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z",
+  person:"M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z",
+  tools:"M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z",
+  list:"M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z",
+  gear:"M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.488.488 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z",
+  logout:"M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5a2 2 0 00-2 2v4h2V5h14v14H5v-4H3v4a2 2 0 002 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z",
+  close:"M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z",
+  history:"M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0013 21a9 9 0 000-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z",
+  download:"M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z",
+  up:"M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z",
+  dots:"M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z",
+  notes:"M14 17H4v2h10v-2zm6-8H4v2h16V9zM4 15h16v-2H4v2zM4 5v2h16V5H4z",
+  file:"M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 14h-3v3h-2v-3H8v-2h3v-3h2v3h3v2zm-3-7V3.5L18.5 9H13z",
+  edit:"M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+};
+const ic=n=>`<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="${P[n]}"/></svg>`;
+const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $=(s,r=document)=>r.querySelector(s);
+const p2=n=>String(n).padStart(2,'0');
+const fmtDate=d=>d?`${p2(d.getMonth()+1)}/${p2(d.getDate())}/${d.getFullYear()}`:'';
+const fmtDT=d=>{if(!d)return'';const h=d.getHours();return `${fmtDate(d)} ${h%12||12}:${p2(d.getMinutes())} ${h<12?'AM':'PM'}`;};
+const iso=d=>`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
+const cls=s=>String(s).replace(/\s/g,'');
+const chip=s=>`<span class="st ${cls(s)}">${esc(s)}</span>`;
+const money=n=>'COP '+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+/* ---------- Datos ficticios (relativos a hoy para que el mes actual siempre tenga información) ---------- */
+const NOW=new Date();
+const cur=(back,h=9,m=0)=>new Date(NOW.getFullYear(),NOW.getMonth(),Math.max(1,NOW.getDate()-back),h,m);
+const mon=(off,day,h=9,m=0)=>new Date(NOW.getFullYear(),NOW.getMonth()+off,day,h,m);
+
+const USERS=[
+  {id:'u1',name:'Carolina Ruiz',role:'Stockroom',canEdit:true},
+  {id:'u2',name:'Laura Mendoza',role:'Project Engineer',canEdit:false},
+  {id:'u3',name:'Andrés Pineda',role:'Project Manager',canEdit:false}
+];
+const FIELDS=[
+  {k:'sapCode',label:'SAP Code'},{k:'description',label:'Description'},{k:'color',label:'Color'},
+  {k:'alloy',label:'Alloy'},{k:'uom',label:'Unit of Measure'},{k:'quantity',label:'Quantity Created'},{k:'notes',label:'Notes'}
+];
+const REQ_OPTIONS=['Color','Alloy','Description','Other'];
+
+const codes=[
+  {id:'c1',paCode:'PA-01284',sapCode:'90003884',description:'HUACAL GENERICO',color:'N/A',alloy:'N/A',uom:'UN',quantity:8,requestedBy:'Laura Mendoza',requestedAt:mon(-1,6,8,40),createdAt:mon(-1,6,15,10),status:'Approved',notes:'Wood crate for packing'},
+  {id:'c2',paCode:'PA-01297',sapCode:'90004127',description:'ALUMINUM EXTRUSION 6063-T5 6M',color:'Mill Finish',alloy:'6063-T5',uom:'UN',quantity:120,requestedBy:'Andrés Pineda',requestedAt:cur(3,10,15),createdAt:cur(3,16,0),status:'Modification Requested',notes:''},
+  {id:'c3',paCode:'PA-01302',sapCode:'90004133',description:'ANGLE 2X2 IN ANODIZED',color:'Clear',alloy:'6061',uom:'UN',quantity:60,requestedBy:'Laura Mendoza',requestedAt:cur(2,9,5),createdAt:cur(2,14,25),status:'Approved',notes:'Group 3 facade'},
+  {id:'c4',paCode:'PA-01305',sapCode:'90004140',description:'ALUMINUM SHEET 3MM',color:'Mill Finish',alloy:'5052',uom:'M2',quantity:45,requestedBy:'Andrés Pineda',requestedAt:cur(2,11,30),createdAt:cur(1,8,50),status:'Approved',notes:''},
+  {id:'c5',paCode:'PA-01266',sapCode:'90003790',description:'ACM PANEL 4MM',color:'White',alloy:'3003',uom:'M2',quantity:300,requestedBy:'Laura Mendoza',requestedAt:mon(-3,14,10,0),createdAt:mon(-3,15,9,20),status:'Approved',notes:'Podium level'},
+  {id:'c6',paCode:'PA-01311',sapCode:'',description:'EPDM GASKET 12MM BLACK',color:'Black',alloy:'',uom:'M',quantity:500,requestedBy:'Laura Mendoza',requestedAt:cur(1,8,20),createdAt:null,status:'Pending',notes:'Awaiting SAP creation'},
+  {id:'c7',paCode:'PA-01312',sapCode:'',description:'SILICONE SEALANT GRAY',color:'Gray',alloy:'',uom:'UN',quantity:48,requestedBy:'Andrés Pineda',requestedAt:cur(0,7,55),createdAt:null,status:'Pending',notes:''},
+  {id:'c8',paCode:'PA-01299',sapCode:'',description:'SS 304 SCREW 1/4 X 1',color:'',alloy:'304',uom:'UN',quantity:1000,requestedBy:'Andrés Pineda',requestedAt:cur(3,15,40),createdAt:null,status:'Rejected',notes:'Already exists in SAP as 90002215'}
+];
+const reqs=[
+  {id:'MR-0001',codeId:'c1',fields:['Description'],details:'Use the generic crate name.',reason:'Name did not match the SAP catalog.',status:'Completed',prevStatus:'Approved',requestedBy:'Andrés Pineda',requestedAt:mon(-1,12,9,10),completedBy:'Carolina Ruiz',completedAt:mon(-1,12,16,30),rejectReason:'',
+    changes:[{field:'Description',from:'HUACAL ESTANDAR',to:'HUACAL GENERICO'}]},
+  {id:'MR-0002',codeId:'c1',fields:['Other'],details:'Add usage to the notes.',reason:'Packing needs to identify the crate.',status:'Completed',prevStatus:'Approved',requestedBy:'Laura Mendoza',requestedAt:cur(4,10,0),completedBy:'Carolina Ruiz',completedAt:cur(3,11,20),rejectReason:'',
+    changes:[{field:'Notes',from:'',to:'Wood crate for packing'}]},
+  {id:'MR-0003',codeId:'c5',fields:['Color','Other'],details:'Color should be White. SAP code must point to the new material.',reason:'Finish was changed after client approval.',status:'Completed',prevStatus:'Approved',requestedBy:'Laura Mendoza',requestedAt:cur(4,8,45),completedBy:'Carolina Ruiz',completedAt:cur(2,15,5),rejectReason:'',
+    changes:[{field:'SAP Code',from:'90003788',to:'90003790'},{field:'Color',from:'Off White',to:'White'}]},
+  {id:'MR-0004',codeId:'c4',fields:['Alloy'],details:'Change the alloy to 5005.',reason:'Requested by mistake for another project.',status:'Rejected',prevStatus:'Approved',requestedBy:'Andrés Pineda',requestedAt:cur(1,9,30),completedBy:'Carolina Ruiz',completedAt:cur(1,13,0),rejectReason:'Alloy 5052 is correct for this project.',changes:[]},
+  {id:'MR-0005',codeId:'c2',fields:['Color','Alloy'],details:'Change the finish to Bronze and the alloy to 6005-T5.',reason:'Engineering revision B of the shop drawings.',status:'Pending',prevStatus:'Approved',requestedBy:'Laura Mendoza',requestedAt:cur(0,8,10),completedBy:'',completedAt:null,rejectReason:'',changes:[]}
+];
+const boms=[
+  {id:'b1',code:'4108-332-6',project:'4108 Harbor Tower Group 2',status:'Closed',createdBy:'Daniela Torres',pm:'Andrés Pineda',createdAt:mon(-1,8,17,13),notes:'4914027761',
+    items:[
+      {index:1,code:'4108-332-6-1',codeId:'c1',description:'90003884 HUACAL GENERICO',total:8,remaining:0,store:'1152',cost:980450.25,notes:'7 und ancho 950 mm, largo 3200 mm, alto 2150 mm. 1 und ancho 950 mm, largo 3000, alto 2150 mm.',
+       deliveries:[{by:'Stockroom2',to:'Packing',date:mon(-1,9,22,9),qty:8,notes:'J. RAMIREZ / E. TORRES',sap:true,movement:''}]},
+      {index:2,code:'4108-332-6-2',codeId:'c5',description:'90003790 ACM PANEL 4MM',total:30,remaining:0,store:'1152',cost:145300,notes:'Podium level',
+       deliveries:[{by:'Stockroom1',to:'Fabrication',date:mon(-1,10,11,30),qty:30,notes:'M. GOMEZ',sap:true,movement:'4914027802'}]}
+    ]},
+  {id:'b2',code:'4108-340-2',project:'4108 Harbor Tower Group 3',status:'Open',createdBy:'Daniela Torres',pm:'Andrés Pineda',createdAt:cur(2,10,20),notes:'',
+    items:[
+      {index:1,code:'4108-340-2-1',codeId:'c2',description:'90004127 ALUMINUM EXTRUSION 6063-T5 6M',total:120,remaining:40,store:'1152',cost:212800.5,notes:'Mullions, levels 3 to 6',
+       deliveries:[
+         {by:'Stockroom2',to:'Fabrication',date:cur(1,9,40),qty:50,notes:'J. RAMIREZ',sap:true,movement:'4914031190'},
+         {by:'Stockroom2',to:'Fabrication',date:cur(0,8,5),qty:30,notes:'E. TORRES',sap:false,movement:''}
+       ]},
+      {index:2,code:'4108-340-2-2',codeId:'c3',description:'90004133 ANGLE 2X2 IN ANODIZED',total:60,remaining:60,store:'1149',cost:58200,notes:'',deliveries:[]}
+    ]},
+  {id:'b3',code:'3977-118-1',project:'3977 Riverside Plaza Group 1',status:'Open',createdBy:'Felipe Arango',pm:'Andrés Pineda',createdAt:cur(1,14,0),notes:'',
+    items:[{index:1,code:'3977-118-1-1',codeId:'c4',description:'90004140 ALUMINUM SHEET 3MM',total:45,remaining:15,store:'1152',cost:176940,notes:'Soffit panels',
+      deliveries:[{by:'Stockroom1',to:'Fabrication',date:cur(0,9,15),qty:30,notes:'M. GOMEZ',sap:false,movement:''}]}]}
+];
+
+/* ---------- Estado ---------- */
+const TABS=[
+  ['stock','Stock'],['codes','Code Request'],['mods','Modification Requests'],['approved','Approved'],['hold','On Hold'],
+  ['rejected','Rejected'],['openBom','Open BOM'],['orders','Open Orders'],['closedBom','Closed BOMs']
+];
+const S={user:USERS[0],tab:'codes',bom:null,statusFilter:'All',statusMenu:false,sortAsc:false,modFilter:'All'};
+const codeOf=id=>codes.find(c=>c.id===id);
+const reqOf=id=>reqs.find(r=>r.id===id);
+const reqsOf=id=>reqs.filter(r=>r.codeId===id).sort((a,b)=>b.requestedAt-a.requestedAt);
+const pendingOf=id=>reqs.find(r=>r.codeId===id&&r.status==='Pending');
+const pendingCount=()=>reqs.filter(r=>r.status==='Pending').length;
+const nextReqId=()=>'MR-'+p2(reqs.length+1).padStart(4,'0');
+
+/* ---------- Vistas ---------- */
+function render(){
+  $('#app').innerHTML=`<div class="app">
+    <header class="top">
+      <div class="logo"><span class="mark"></span>PROJECT AGENDA</div>
+      <span class="sp"></span>
+      <label class="viewas">Viewing as
+        <select id="viewAs">${USERS.map(u=>`<option value="${u.id}" ${u===S.user?'selected':''}>${esc(u.name)} · ${esc(u.role)}</option>`).join('')}</select>
+      </label>
+      <div class="top-search">${ic('search')}<input placeholder="Search" aria-label="Search"></div>
+      <button class="iconbtn" title="Notifications">${ic('bell')}<span class="badge">41</span></button>
+      <button class="iconbtn" title="Account">${ic('account')}</button>
+    </header>
+    <div class="body">
+      <nav class="rail" aria-label="Modules">
+        <span class="es">ESMETALS</span>
+        <button title="Clients">${ic('person')}</button>
+        <button title="Staff">${ic('person')}</button>
+        <button title="Field">${ic('person')}</button>
+        <button class="on" title="Stock Room">${ic('tools')}<span class="badge">39</span></button>
+        <button title="Reports">${ic('list')}</button>
+        <button title="Settings">${ic('gear')}</button>
+        <button class="end" title="Logout">${ic('logout')}</button>
+      </nav>
+      <div class="main">
+        <div class="tabs" role="tablist">${TABS.map(([k,l])=>`<button role="tab" aria-selected="${S.tab===k}" class="tab ${S.tab===k?'on':''}" data-act="tab" data-v="${k}">${l}${k==='mods'&&pendingCount()?`<span class="count">${pendingCount()}</span>`:''}</button>`).join('')}</div>
+        <section class="page">${pageView()}</section>
+        <footer>Copyright © SIGMA ${NOW.getFullYear()}</footer>
+      </div>
+    </div>
+  </div>`;
+}
+function pageView(){
+  if(S.bom) return bomDetail(boms.find(b=>b.id===S.bom));
+  switch(S.tab){
+    case 'codes': return codesView();
+    case 'mods': return modsView();
+    case 'openBom': return bomList('Open');
+    case 'closedBom': return bomList('Closed');
+    default: return `<div class="empty">This view does not change. It is not part of this mockup.</div>`;
+  }
+}
+
+function codesView(){
+  const statuses=['All','Pending','Approved','Modification Requested','Rejected'];
+  const rows=codes.filter(c=>S.statusFilter==='All'||c.status===S.statusFilter)
+    .sort((a,b)=>S.sortAsc?a.requestedAt-b.requestedAt:b.requestedAt-a.requestedAt);
+  return `<div class="bar"><span class="sp"></span>
+      <button class="btn line" data-act="report">${ic('download')}Report</button>
+    </div>
+    <div class="card tw"><table class="t">
+      <thead><tr>
+        <th><button class="thbtn ${S.sortAsc?'':'desc'}" data-act="sort">Date ${ic('up')}</button></th>
+        <th>Created By</th><th>Description</th>
+        <th><button class="thbtn" data-act="statusMenu" aria-haspopup="true" aria-expanded="${S.statusMenu}" aria-label="Filter by status">Status ${ic('dots')}</button>
+          ${S.statusMenu?`<div class="menu">${statuses.map(s=>`<button class="${S.statusFilter===s?'on':''}" data-act="statusPick" data-v="${s}">${s}</button>`).join('')}</div>`:''}
+        </th>
+        <th>Code</th><th>Notes</th><th>Actions</th>
+      </tr></thead>
+      <tbody>${rows.map(codeRow).join('')||`<tr><td class="nodata" colspan="7">No data available</td></tr>`}</tbody>
+    </table></div>`;
+}
+function codeRow(c){
+  const n=reqsOf(c.id).length;
+  /* DECISIÓN D2 y D3 */
+  const act=!c.sapCode?'':pendingOf(c.id)
+    ?`<button class="btn sm" disabled title="This code already has a pending modification request">Request Pending</button>`
+    :`<button class="btn sm line" data-act="request" data-v="${c.id}">Request Modification</button>`;
+  const hist=n?`<button class="hist" data-act="history" data-v="${c.id}" title="Modification history" aria-label="Modification history, ${n} records">${ic('history')}<span class="n">${n}</span></button>`:'';
+  return `<tr>
+    <td class="w-code">${fmtDate(c.requestedAt)}</td><td>${esc(c.requestedBy)}</td><td>${esc(c.description)}</td>
+    <td>${chip(c.status)}</td><td class="w-code">${esc(c.sapCode)||'<span class="muted">—</span>'}</td><td>${esc(c.notes)}</td>
+    <td><div class="acts">${act}${hist}</div></td></tr>`;
+}
+
+function modsView(){
+  const rows=reqs.filter(r=>S.modFilter==='All'||r.status===S.modFilter).sort((a,b)=>b.requestedAt-a.requestedAt);
+  return `<div class="bar"><h2>Code Modification Requests</h2><span class="sp"></span>
+      <div class="pills">${['All','Pending','Completed','Rejected'].map(s=>`<button class="pill ${S.modFilter===s?'on':''}" data-act="modFilter" data-v="${s}" aria-pressed="${S.modFilter===s}">${s}</button>`).join('')}</div>
+    </div>
+    <div class="card tw"><table class="t" style="min-width:1160px">
+      <thead><tr><th>PA Code</th><th>SAP Code</th><th>Description</th><th>Requested Change</th><th>Reason</th><th>Requested By</th><th>Request Date</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>${rows.map(modRow).join('')||`<tr><td class="nodata" colspan="9">No data available</td></tr>`}</tbody>
+    </table></div>`;
+}
+function modRow(r){
+  const c=codeOf(r.codeId), ok=S.user.canEdit;
+  const tip=ok?'':`title="Only the Stockroom role can edit or reject requests"`;
+  const act=r.status==='Pending'
+    ?`<button class="btn sm" data-act="edit" data-v="${r.id}" ${ok?'':'disabled'} ${tip}>Edit Code</button>
+      <button class="btn sm red" data-act="reject" data-v="${r.id}" ${ok?'':'disabled'} ${tip}>Reject</button>`
+    :`<button class="btn sm line" data-act="history" data-v="${c.id}" data-focus="${r.id}">View Details</button>`;
+  return `<tr>
+    <td class="w-code">${esc(c.paCode)}</td><td class="w-code">${esc(c.sapCode)}</td><td>${esc(c.description)}</td>
+    <td><div class="clamp req" title="${esc(r.details)}"><b>${esc(r.fields.join(', '))}:</b> ${esc(r.details)}</div></td>
+    <td><div class="clamp" title="${esc(r.reason)}">${esc(r.reason)}</div></td>
+    <td>${esc(r.requestedBy)}</td><td class="w-code">${fmtDT(r.requestedAt)}</td><td>${chip(r.status)}</td>
+    <td><div class="acts">${act}</div></td></tr>`;
+}
+
+function bomList(status){
+  const rows=boms.filter(b=>b.status===status);
+  return `<div class="card tw"><table class="t" style="min-width:820px">
+    <thead><tr><th>BOM</th><th>Project</th><th>Created</th><th>Created By</th><th>Project Manager</th><th class="c">Items</th></tr></thead>
+    <tbody>${rows.map(b=>`<tr class="link" tabindex="0" data-act="bom" data-v="${b.id}"><td class="w-code"><b>${esc(b.code)}</b></td><td>${esc(b.project)}</td><td class="w-code">${fmtDT(b.createdAt)}</td><td>${esc(b.createdBy)}</td><td>${esc(b.pm)}</td><td class="c">${b.items.length}</td></tr>`).join('')||`<tr><td class="nodata" colspan="6">No data available</td></tr>`}</tbody>
+  </table></div>`;
+}
+function qr(seed){
+  let s=[...seed].reduce((a,ch)=>a*31+ch.charCodeAt(0)>>>0,7), out='';
+  const N=29, rnd=()=>(s=(s*1664525+1013904223)>>>0)/4294967296;
+  const finder=(x,y)=>x<8&&y<8||x>N-9&&y<8||x<8&&y>N-9;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++) if(!finder(x,y)&&rnd()>.52) out+=`<rect x="${x}" y="${y}" width="1" height="1"/>`;
+  const f=(x,y)=>`<rect x="${x}" y="${y}" width="7" height="7"/><rect x="${x+1}" y="${y+1}" width="5" height="5" fill="#fff"/><rect x="${x+2}" y="${y+2}" width="3" height="3"/>`;
+  return `<svg class="qr" viewBox="0 0 ${N} ${N}" role="img" aria-label="BOM QR code" shape-rendering="crispEdges">${out}${f(0,0)}${f(N-7,0)}${f(0,N-7)}</svg>`;
+}
+function bomDetail(b){
+  const empty=b.items.some(i=>i.deliveries.some(d=>d.sap&&!d.movement));
+  return `<div class="bomh"><button class="iconbtn" data-act="bomClose" title="Close" aria-label="Close">${ic('close')}</button>
+      <h2>Bill Of Material <b>${esc(b.code)} | ${esc(b.project)}</b></h2></div>
+    <div class="bominfo">
+      <div><p><b>STATUS:</b> ${esc(b.status)}</p><p><b>CREATED BY:</b> ${esc(b.createdBy)}</p><p><b>PROJECT MANAGER:</b> ${esc(b.pm)}</p></div>
+      <div><p><b>CREATED:</b> ${fmtDT(b.createdAt)}</p><div class="bnotes">${ic('notes')}<div>Notes: ${esc(b.notes)}</div></div></div>
+      ${qr(b.code)}
+    </div>
+    ${empty?`<p class="hintbar">Some deliveries already marked in SAP have no SAP Movement. You can complete them below.</p>`:''}
+    <div class="items"><h3>ITEMS</h3><div class="tw"><table class="it">
+      <thead><tr><th>Index</th><th>Code</th><th>Description</th><th>Total</th><th>Remaining</th><th>Store</th><th>Unit Cost</th><th>Destination</th><th>Notes</th><th>Files</th></tr></thead>
+      <tbody>${b.items.map(i=>`<tr class="row"><td>${i.index}</td><td>${esc(i.code)}</td><td class="desc">${esc(i.description)}</td><td>${i.total}</td><td>${i.remaining}</td><td>${esc(i.store)}</td><td style="white-space:nowrap">${money(i.cost)}</td><td></td><td class="notes">${esc(i.notes)}</td><td style="color:var(--primary)">${ic('file')}</td></tr>
+        <tr><td colspan="10" class="dwrap">${deliveries(b,i)}</td></tr>`).join('')}</tbody>
+    </table></div></div>`;
+}
+function deliveries(b,i){
+  if(!i.deliveries.length) return `<div class="nodata">No deliveries yet</div>`;
+  return `<div class="dbox"><table class="dv">
+    <colgroup><col style="width:14%"><col style="width:13%"><col style="width:18%"><col style="width:10%"><col style="width:21%"><col style="width:6%"><col style="width:18%"></colgroup>
+    <thead><tr><th>Delivered By</th><th>Delivered To</th><th>Date</th><th>Delivered</th><th>Notes</th><th>SAP</th><th>SAP Movement</th></tr></thead>
+    <tbody>${i.deliveries.map((d,n)=>{const k=`${b.id}|${i.index}|${n}`;return `<tr>
+      <td>${esc(d.by)}</td><td>${esc(d.to)}</td><td>${fmtDT(d.date)}</td><td>${d.qty}</td><td>${esc(d.notes)}</td>
+      <td><input type="checkbox" aria-label="Registered in SAP" data-sap="${k}" ${d.sap?'checked':''} ${b.status==='Closed'?'disabled':''}></td>
+      <td class="mov ${d.err?'bad':''}">${movCell(d,k)}${d.err?`<div class="err">Enter the SAP Movement first</div>`:''}</td></tr>`;}).join('')}</tbody>
+  </table></div>`;
+}
+function movCell(d,k){
+  /* DECISIÓN D9 */
+  if(d.sap&&d.movement&&!d.editing)
+    return `<span class="movv">${esc(d.movement)}${S.user.canEdit?`<button data-act="movEdit" data-v="${k}" title="Edit SAP Movement" aria-label="Edit SAP Movement">${ic('edit')}</button>`:''}</span>`;
+  return `<input data-mov="${k}" inputmode="numeric" maxlength="20" autocomplete="off" aria-label="SAP Movement" placeholder="Movement no." value="${esc(d.movement)}">`;
+}
+const delivery=k=>{const [b,i,n]=k.split('|');return boms.find(x=>x.id===b).items.find(x=>x.index==i).deliveries[n];};
+
+/* ---------- Modales ---------- */
+
+function openModal(html,wide){
+  $('#modal').innerHTML=`<div class="ov" data-ov><div class="modal ${wide?'wide':''}" role="dialog" aria-modal="true" aria-labelledby="mTitle">${html}</div></div>`;
+  const f=$('#modal [data-autofocus]')||$('#modal input,#modal textarea,#modal button');
+  if(f) f.focus();
+}
+function closeModal(){ $('#modal').innerHTML=''; }
+const mHead=t=>`<div class="mh"><h3 id="mTitle">${esc(t)}</h3><button class="iconbtn" data-act="modalClose" aria-label="Close" style="padding:4px">${ic('close').replace('class="i"','class="i" style="width:22px;height:22px"')}</button></div>`;
+const codeInfo=c=>`<div class="info"><div><span class="l">PA Code:</span> ${esc(c.paCode)} &nbsp; <span class="l">SAP Code:</span> ${esc(c.sapCode)}</div><div><span class="l">Description:</span> ${esc(c.description)}</div></div>`;
+function setErr(id,msg){const e=$('#'+id);if(!e)return;e.textContent=msg||'';const w=e.closest('.fl');if(w)w.classList.toggle('bad',!!msg);}
+
+function requestModal(c){
+  openModal(`${mHead('Request Modification')}
+    <form id="fReq" data-v="${c.id}" novalidate><div class="mb">
+      ${codeInfo(c)}
+      <span class="lg">What do you want to modify? <span class="req-star">*</span></span>
+      <div class="checks">${REQ_OPTIONS.map(o=>`<label><input type="checkbox" name="what" value="${o}">${o}</label>`).join('')}</div>
+      <div class="err" id="eWhat" style="margin:-10px 0 12px"></div>
+      <label class="fl"><span>Change details <span class="req-star">*</span></span><textarea id="fDetails" maxlength="500"></textarea><div class="err" id="eDetails"></div></label>
+      <label class="fl"><span>Reason for the modification <span class="req-star">*</span></span><textarea id="fReason" maxlength="500"></textarea><div class="err" id="eReason"></div></label>
+    </div><div class="mf"><button type="button" class="btn text" data-act="modalClose">Cancel</button><button class="btn">Submit Request</button></div></form>`);
+}
+function submitRequest(form){
+  const c=codeOf(form.dataset.v);
+  const what=[...form.querySelectorAll('[name=what]:checked')].map(x=>x.value);
+  const details=$('#fDetails').value.trim(), reason=$('#fReason').value.trim();
+  setErr('eWhat',what.length?'':'Select at least one option.');
+  setErr('eDetails',details?'':'Describe the change.');
+  setErr('eReason',reason?'':'The reason is required.');
+  if(!what.length||!details||!reason||pendingOf(c.id)) return;
+  const r={id:nextReqId(),codeId:c.id,fields:what,details,reason,status:'Pending',prevStatus:c.status,requestedBy:S.user.name,requestedAt:new Date(),completedBy:'',completedAt:null,rejectReason:'',changes:[]};
+  reqs.push(r); c.status='Modification Requested';
+  closeModal(); render(); toast(`Modification request ${r.id} created`);
+}
+
+function editModal(r){
+  const c=codeOf(r.codeId);
+  const use=boms.flatMap(b=>b.items.filter(i=>i.codeId===c.id)).length;
+  const inp=(f,extra='')=>`<label class="fl ${f.k==='description'||f.k==='notes'?'full':''}"><span>${f.label}${['sapCode','description'].includes(f.k)?' <span class="req-star">*</span>':''}</span><input data-f="${f.k}" value="${esc(c[f.k])}" ${extra}><div class="err" id="e_${f.k}"></div></label>`;
+  openModal(`${mHead('Edit Code')}
+    <form id="fEdit" data-v="${r.id}" novalidate><div class="mb">
+      <div class="info"><div><span class="l">Request ${esc(r.id)}:</span> ${esc(r.fields.join(', '))}. ${esc(r.details)}</div>
+        <div><span class="l">Reason:</span> ${esc(r.reason)}</div>
+        <div><span class="l">Requested by:</span> ${esc(r.requestedBy)} · ${fmtDT(r.requestedAt)}</div>
+        <div><span class="l">PA Code:</span> ${esc(c.paCode)}</div></div>
+      <div class="grid2">${FIELDS.map(f=>inp(f,f.k==='sapCode'?'inputmode="numeric" data-autofocus':f.k==='quantity'?'inputmode="numeric"':'')).join('')}</div>
+      <div class="diffbox"><h4>Changes to Save</h4><div id="diff"></div></div>
+      ${use?`<p class="warn">This code is used in ${use} BOM item${use>1?'s':''}. Existing BOMs keep their current values.</p>`:''}
+    </div><div class="mf"><button type="button" class="btn text" data-act="modalClose">Cancel</button><button class="btn" id="bSave" disabled>Save Changes</button></div></form>`,true);
+  refreshDiff();
+}
+function editChanges(c){
+  return FIELDS.map(f=>{
+    const to=$(`[data-f=${f.k}]`).value.trim(), from=String(c[f.k]==null?'':c[f.k]);
+    return to===from?null:{k:f.k,field:f.label,from,to};
+  }).filter(Boolean);
+}
+const diffTable=ch=>`<table class="d"><thead><tr><th>Field</th><th>Previous value</th><th>New value</th></tr></thead><tbody>${ch.map(x=>`<tr><td>${esc(x.field)}</td><td class="old">${esc(x.from)||'<span class="muted">(empty)</span>'}</td><td>${esc(x.to)||'<span class="muted">(empty)</span>'}</td></tr>`).join('')}</tbody></table>`;
+function refreshDiff(){
+  const f=$('#fEdit'); if(!f) return;
+  const ch=editChanges(codeOf(reqOf(f.dataset.v).codeId));
+  $('#diff').innerHTML=ch.length?diffTable(ch):`<div class="none">No changes yet.</div>`;
+  $('#bSave').disabled=!ch.length;
+}
+function saveEdit(form){
+  const r=reqOf(form.dataset.v), c=codeOf(r.codeId), ch=editChanges(c);
+  const val=k=>$(`[data-f=${k}]`).value.trim();
+  const sap=val('sapCode'), qty=val('quantity');
+  const dup=codes.find(x=>x.id!==c.id&&x.sapCode===sap);
+  const eSap=!sap?'The SAP code is required.':!/^\d+$/.test(sap)?'Use digits only.':dup?`Already used by ${dup.paCode}.`:'';
+  const eDesc=val('description')?'':'The description is required.';
+  const eQty=/^\d+$/.test(qty)?'':'Use a whole number.';
+  setErr('e_sapCode',eSap); setErr('e_description',eDesc); setErr('e_quantity',eQty);
+  if(eSap||eDesc||eQty||!ch.length) return;
+  ch.forEach(x=>{c[x.k]=x.k==='quantity'?Number(x.to):x.to;});
+  r.changes=ch.map(({field,from,to})=>({field,from,to}));
+  r.status='Completed'; r.completedBy=S.user.name; r.completedAt=new Date();
+  c.status=r.prevStatus; /* DECISIÓN D4 */
+  closeModal(); render(); toast(`${r.id} completed. Code returned to ${c.status}`);
+}
+
+function rejectModal(r){
+  const c=codeOf(r.codeId);
+  openModal(`${mHead('Reject Request')}
+    <form id="fRej" data-v="${r.id}" novalidate><div class="mb">${codeInfo(c)}
+      <label class="fl"><span>Reason for rejection <span class="req-star">*</span></span><textarea id="fRejR" maxlength="500" data-autofocus></textarea><div class="err" id="eRej"></div></label>
+    </div><div class="mf"><button type="button" class="btn text" data-act="modalClose">Cancel</button><button class="btn">Reject Request</button></div></form>`);
+}
+function saveReject(form){
+  const r=reqOf(form.dataset.v), c=codeOf(r.codeId), why=$('#fRejR').value.trim();
+  setErr('eRej',why?'':'The reason is required.');
+  if(!why) return;
+  r.status='Rejected'; r.rejectReason=why; r.completedBy=S.user.name; r.completedAt=new Date();
+  c.status=r.prevStatus;
+  closeModal(); render(); toast(`${r.id} rejected. Code returned to ${c.status}`);
+}
+
+function historyModal(c,focus){
+  const list=reqsOf(c.id);
+  openModal(`${mHead('Modification History')}<div class="mb">${codeInfo(c)}
+    ${list.map(r=>`<div class="hitem" ${r.id===focus?'style="border-color:var(--primary)"':''}>
+      <div class="hh"><b>${esc(r.id)}</b>${chip(r.status)}</div>
+      <p class="kv"><span class="l">Requested:</span> ${esc(r.fields.join(', '))}. ${esc(r.details)}</p>
+      <p class="kv"><span class="l">Reason:</span> ${esc(r.reason)}</p>
+      <p class="kv"><span class="l">Requested by:</span> ${esc(r.requestedBy)} · ${fmtDT(r.requestedAt)}</p>
+      ${r.status==='Completed'?`<p class="kv"><span class="l">Modified by:</span> ${esc(r.completedBy)} · ${fmtDT(r.completedAt)}</p><div class="diffbox">${diffTable(r.changes)}</div>`:''}
+      ${r.status==='Rejected'?`<p class="kv"><span class="l">Rejected by:</span> ${esc(r.completedBy)} · ${fmtDT(r.completedAt)}</p><p class="kv"><span class="l">Rejection reason:</span> ${esc(r.rejectReason)}</p>`:''}
+    </div>`).join('')}
+  </div><div class="mf"><button class="btn" data-act="modalClose">Close</button></div>`,true);
+}
+
+/* ---------- Reporte Excel ---------- */
+function reportModal(){
+  const from=new Date(NOW.getFullYear(),NOW.getMonth(),1), to=new Date(NOW.getFullYear(),NOW.getMonth()+1,0);
+  openModal(`${mHead('Code Report')}<form id="fRep" novalidate><div class="mb">
+      <div class="grid2">
+        <label class="fl"><span>From</span><input type="date" id="rFrom" value="${iso(from)}"></label>
+        <label class="fl"><span>To</span><input type="date" id="rTo" value="${iso(to)}"></label>
+      </div>
+      <div class="counts" id="rCounts"></div><div class="err" id="eRange" style="margin-top:8px"></div>
+    </div><div class="mf"><button type="button" class="btn text" data-act="modalClose">Cancel</button><button class="btn" id="bRep">${ic('download')}Download Excel</button></div></form>`);
+  refreshReport();
+}
+function reportRange(){
+  const f=$('#rFrom').value, t=$('#rTo').value;
+  if(!f||!t) return null;
+  const [a,b,c]=f.split('-').map(Number),[d,e,g]=t.split('-').map(Number);
+  return {from:new Date(a,b-1,c,0,0,0,0),to:new Date(d,e-1,g,23,59,59,999),f,t};
+}
+const inRange=(d,r)=>d>=r.from&&d<=r.to;
+function reportData(r){
+  return {codes:codes.filter(c=>inRange(c.requestedAt,r)).sort((a,b)=>a.requestedAt-b.requestedAt),
+          mods:reqs.filter(x=>inRange(x.requestedAt,r)).sort((a,b)=>a.requestedAt-b.requestedAt)};
+}
+function refreshReport(){
+  const r=reportRange(), bad=!r||r.from>r.to;
+  $('#eRange').textContent=bad?'Select a valid date range.':'';
+  $('#bRep').disabled=bad;
+  if(bad){$('#rCounts').innerHTML='';return;}
+  const d=reportData(r);
+  $('#rCounts').innerHTML=`<div><b>${d.codes.length}</b><span>Codes requested</span></div><div><b>${d.mods.length}</b><span>Modification requests</span></div>`;
+}
+const xlDate=d=>d?{t:'n',v:(d.getTime()-d.getTimezoneOffset()*60000)/86400000+25569,z:'mm/dd/yyyy hh:mm AM/PM'}:null;
+const orNull=v=>v===''||v==null?null:v;
+function buildWorkbook(r){
+  const d=reportData(r), wb=XLSX.utils.book_new();
+  /* DECISIÓN D8: una fila por código, con la última modificación completada */
+  const h1=['Requested Code','Description','Quantity Created','Request Date','Requested By','Creation Date','SAP Code','Notes','Status','Color','Alloy','Unit of Measure',
+    'Has Modifications','Modification Count','Modification Request Date','Modification Requested By','Modified By','Modification Date','Modification Reason','What Was Modified'];
+  const s1=d.codes.map(c=>{
+    const done=reqsOf(c.id).filter(x=>x.status==='Completed'), m=done[0];
+    return [c.paCode,c.description,c.quantity,xlDate(c.requestedAt),c.requestedBy,xlDate(c.createdAt),orNull(c.sapCode),orNull(c.notes),c.status,orNull(c.color),orNull(c.alloy),orNull(c.uom),
+      done.length?'Yes':'No',done.length,
+      m?xlDate(m.requestedAt):null,m?m.requestedBy:null,m?m.completedBy:null,m?xlDate(m.completedAt):null,m?m.reason:null,
+      m?m.changes.map(x=>`${x.field}: ${x.from||'(empty)'} → ${x.to||'(empty)'}`).join('; '):null];
+  });
+  /* Una fila por campo cambiado; las solicitudes sin cambios ocupan una fila */
+  const h2=['Request ID','Requested Code','SAP Code','Description','Request Status','Requested Fields','Change Details','Reason','Requested By','Request Date','Modified By','Modification Date','Field','Previous Value','New Value','Rejection Reason'];
+  const s2=d.mods.flatMap(m=>{
+    const c=codeOf(m.codeId);
+    const base=[m.id,c.paCode,orNull(c.sapCode),c.description,m.status,m.fields.join(', '),m.details,m.reason,m.requestedBy,xlDate(m.requestedAt),orNull(m.completedBy),xlDate(m.completedAt)];
+    return m.changes.length?m.changes.map(x=>[...base,x.field,orNull(x.from),orNull(x.to),null]):[[...base,null,null,null,orNull(m.rejectReason)]];
+  });
+  const sheet=(head,rows,widths)=>{
+    const ws=XLSX.utils.aoa_to_sheet([head,...rows]);
+    ws['!cols']=widths.map(w=>({wch:w}));
+    ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:rows.length,c:head.length-1}})};
+    return ws;
+  };
+  XLSX.utils.book_append_sheet(wb,sheet(h1,s1,[14,34,10,19,20,19,12,28,22,14,10,10,12,12,19,22,20,19,36,46]),'Codes');
+  XLSX.utils.book_append_sheet(wb,sheet(h2,s2,[11,14,12,34,12,20,40,36,20,19,20,19,18,22,22,34]),'Modification Details');
+  return wb;
+}
+function downloadReport(){
+  const r=reportRange();
+  if(!r||r.from>r.to) return;
+  if(!window.XLSX){toast('The Excel library could not load. Check your internet connection.',true);return;}
+  XLSX.writeFile(buildWorkbook(r),`Code_Report_${r.f}_${r.t}.xlsx`);
+  closeModal(); toast('Report downloaded');
+}
+
+/* ---------- Eventos ---------- */
+let toastT;
+function toast(msg,bad){
+  $('#toast').innerHTML=`<div class="toast ${bad?'bad':''}" role="status">${esc(msg)}</div>`;
+  clearTimeout(toastT); toastT=setTimeout(()=>{$('#toast').innerHTML='';},3600);
+}
+const actions={
+  tab(v){S.tab=v;S.bom=null;S.statusMenu=false;render();},
+  sort(){S.sortAsc=!S.sortAsc;render();},
+  statusMenu(){S.statusMenu=!S.statusMenu;render();},
+  statusPick(v){S.statusFilter=v;S.statusMenu=false;render();},
+  modFilter(v){S.modFilter=v;render();},
+  report(){reportModal();},
+  request(v){requestModal(codeOf(v));},
+  history(v,el){historyModal(codeOf(v),el.dataset.focus);},
+  edit(v){if(S.user.canEdit)editModal(reqOf(v));},
+  reject(v){if(S.user.canEdit)rejectModal(reqOf(v));},
+  modalClose(){closeModal();},
+  bom(v){S.bom=v;render();window.scrollTo(0,0);},
+  bomClose(){S.bom=null;render();},
+  movEdit(v){delivery(v).editing=true;render();const i=$(`[data-mov="${v}"]`);if(i){i.focus();i.select();}}
+};
+document.addEventListener('click',e=>{
+  if(e.target.matches('[data-ov]')){closeModal();return;}
+  const el=e.target.closest('[data-act]');
+  if(el){actions[el.dataset.act](el.dataset.v,el);return;}
+  if(S.statusMenu){S.statusMenu=false;render();}
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&$('#modal').innerHTML) closeModal();
+  if(e.key==='Enter'&&e.target.matches('[data-mov]')) e.target.blur();
+  if(e.key==='Enter'&&e.target.matches('tr[data-act]')) e.target.click();
+});
+document.addEventListener('submit',e=>{
+  e.preventDefault();
+  const f=e.target;
+  if(f.id==='fReq') submitRequest(f);
+  if(f.id==='fEdit') saveEdit(f);
+  if(f.id==='fRej') saveReject(f);
+  if(f.id==='fRep') downloadReport();
+});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.matches('[data-f]')) refreshDiff();
+  if(t.matches('#rFrom,#rTo')) refreshReport();
+  if(t.matches('[data-mov]')) t.value=t.value.replace(/\D/g,'');
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.id==='viewAs'){S.user=USERS.find(u=>u.id===t.value);render();return;}
+  if(t.matches('[data-mov]')){
+    const d=delivery(t.dataset.mov);
+    d.movement=t.value; d.err=false;
+    /* Solo se vuelve a pintar si la entrega ya está marcada, para no perder el clic en el check */
+    if(d.sap){ d.editing=false; if(d.movement) toast('SAP Movement saved'); render(); }
+    return;
+  }
+  if(t.matches('[data-sap]')){
+    const d=delivery(t.dataset.sap);
+    if(t.checked&&!d.movement){ d.err=true; render(); return; }
+    d.sap=t.checked; d.err=false; d.editing=false; render();
+  }
+});
+render();
+</script>
+</body>
+</html>

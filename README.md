@@ -1,0 +1,40 @@
+# Auditoría de almacén · Project Agenda
+
+Maqueta interactiva de la modificación de códigos, el reporte de códigos en Excel y el campo SAP Movement en Bill of Materials.
+
+Es un prototipo en un solo archivo (`index.html`): no tiene backend, base de datos ni conexión con SAP. Todos los datos y personas son ficticios, y los cambios se pierden al recargar la página.
+
+## Cómo verla
+
+Abra `index.html` en el navegador (doble clic). Necesita internet para cargar la fuente Roboto y la librería que genera el Excel.
+
+## Qué muestra
+
+- **Code Request:** lista de códigos, botón *Request Modification*, historial por código y botón *Report*.
+- **Modification Requests (pestaña nueva):** solicitudes con estado Pending, Completed o Rejected, edición del código con vista previa de cambios y detalle de auditoría.
+- **Report:** Excel con rango de fechas, por defecto el mes actual, y dos hojas: *Codes* y *Modification Details*.
+- **Open BOM y Closed BOMs:** detalle del BOM con la columna *SAP Movement* junto al check de SAP.
+- **Viewing as (encabezado):** cambia de usuario para probar permisos. Solo el rol Stockroom edita o rechaza solicitudes.
+
+Las pestañas Stock, Approved, On Hold, Rejected y Open Orders no cambian y no están construidas en la maqueta.
+
+## Reglas pendientes de confirmar
+
+Están marcadas como `DECISIÓN` en `index.html`.
+
+| Tema | Regla usada en la maqueta |
+|---|---|
+| Dónde está el botón | En Code Request, solo en códigos que ya tienen código SAP |
+| Código con solicitud pendiente | Se puede seguir usando, pero no admite otra solicitud |
+| Estado final del código | Vuelve al estado que tenía antes de la solicitud |
+| Permisos | Cualquiera solicita; solo Stockroom edita o rechaza |
+| Solicitudes erradas | Se agrega el estado Rejected, con motivo |
+| BOM existentes | Conservan sus valores al editar un código |
+| Hoja Codes | Filtra por fecha de solicitud del código y muestra la última modificación completada |
+| Hoja Modification Details | Filtra por fecha de solicitud de la modificación, con una fila por campo cambiado |
+| SAP Movement | Solo dígitos y obligatorio para marcar el check; las entregas antiguas se pueden completar |
+| Quantity Created, PA Code, Color, Alloy y Unit of Measure | Campos supuestos: falta validarlos contra el modelo real |
+
+## Datos para el acta mensual
+
+El acta está fuera de alcance. Cada solicitud guarda solicitante, fechas, motivo, responsable y cambios campo por campo, y cada entrega guarda su SAP Movement, así que el acta se podrá generar por mes a partir de esos datos.

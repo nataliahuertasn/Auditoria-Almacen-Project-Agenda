@@ -1,0 +1,1 @@
+{"version":"0.0.1","configurations":[{"name":"mockup","runtimeExecutable":"powershell","runtimeArgs":["-ExecutionPolicy","Bypass","-File","serve.ps1"],"port":5174}]}
