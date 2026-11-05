@@ -20,8 +20,8 @@
     D5  Cualquier usuario puede solicitar; solo el rol Stockroom edita o rechaza (selector "Viewing as").
     D6  Se agrega el estado Rejected, con motivo, para cerrar solicitudes erradas.
     D7  Los BOM existentes conservan sus valores: editar un código no los modifica.
-    D8  Excel de dos hojas. "Code Requests" tiene una fila por cada solicitud, aunque sean del mismo usuario y día,
-        filtra por fecha de solicitud y muestra la última modificación completada. "Modification Details" filtra por fecha de solicitud de la modificación, con una fila por campo.
+    D8  Reporte de una sola hoja: consolidado arriba y detalle debajo, con una fila por solicitud. Muestra las solicitudes
+        recibidas en el periodo y las anteriores que tuvieron una modificación en el periodo.
     D9  SAP Movement solo admite dígitos, se guarda como texto y es obligatorio para marcar el check de SAP.
         Las entregas antiguas quedan vacías y se pueden completar, incluso en BOM cerrados.
 -->
@@ -135,6 +135,12 @@ table.t .r{text-align:right}
 .ov{position:fixed;inset:0;background:#0007;display:flex;align-items:flex-start;justify-content:center;padding:32px 16px;overflow:auto;z-index:50}
 .modal{background:#fff;border-radius:6px;width:min(560px,100%);box-shadow:0 8px 28px #0004}
 .modal.wide{width:min(820px,100%)}
+.modal.xl{width:min(1240px,100%)}
+.rt{margin:14px 0 6px;font-size:13px;font-weight:700;color:#555;text-transform:uppercase}
+table.rs{min-width:520px}
+table.rd{min-width:1320px}
+table.rs th,table.rd th{padding:10px 12px;white-space:normal;font-size:12px}
+table.rs td,table.rd td{padding:8px 12px;font-size:13px}
 .mh{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:18px 24px 10px}
 .mh h3{margin:0;font-size:20px;font-weight:500}
 .mb{padding:6px 24px 12px}
@@ -169,10 +175,6 @@ table.d .old{color:#8a8a8a;text-decoration:line-through}
 .hitem .kv{font-size:13px;margin:2px 0}
 .hitem .kv .l{color:var(--muted)}
 .hitem .diffbox{margin-top:8px}
-.counts{display:flex;gap:12px;flex-wrap:wrap;margin-top:2px}
-.counts div{flex:1 1 180px;background:#f5f5f5;border-radius:4px;padding:10px 14px}
-.counts b{display:block;font-size:22px;font-weight:500}
-.counts span{font-size:12px;color:var(--muted)}
 
 /* Detalle BOM */
 .bomh{display:flex;align-items:center;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:24px}
@@ -499,7 +501,7 @@ const delivery=k=>{const [b,i,n]=k.split('|');return boms.find(x=>x.id===b).item
 /* ---------- Modales ---------- */
 
 function openModal(html,wide){
-  $('#modal').innerHTML=`<div class="ov" data-ov><div class="modal ${wide?'wide':''}" role="dialog" aria-modal="true" aria-labelledby="mTitle">${html}</div></div>`;
+  $('#modal').innerHTML=`<div class="ov" data-ov><div class="modal ${wide==='xl'?'xl':wide?'wide':''}" role="dialog" aria-modal="true" aria-labelledby="mTitle">${html}</div></div>`;
   const f=$('#modal [data-autofocus]')||$('#modal input,#modal textarea,#modal button');
   if(f) f.focus();
 }
@@ -612,12 +614,13 @@ function historyModal(c,focus){
 function reportModal(){
   const from=new Date(NOW.getFullYear(),NOW.getMonth(),1), to=new Date(NOW.getFullYear(),NOW.getMonth()+1,0);
   openModal(`${mHead('Code Report')}<form id="fRep" novalidate><div class="mb">
-      <div class="grid2">
+      <div class="grid2" style="max-width:420px">
         <label class="fl"><span>From</span><input type="date" id="rFrom" value="${iso(from)}"></label>
         <label class="fl"><span>To</span><input type="date" id="rTo" value="${iso(to)}"></label>
       </div>
-      <div class="counts" id="rCounts"></div><div class="err" id="eRange" style="margin-top:8px"></div>
-    </div><div class="mf"><button type="button" class="btn text" data-act="modalClose">Cancel</button><button class="btn" id="bRep">${ic('download')}Download Excel</button></div></form>`);
+      <div class="err" id="eRange"></div>
+      <div id="rPreview"></div>
+    </div><div class="mf"><button type="button" class="btn text" data-act="modalClose">Cancel</button><button class="btn" id="bRep">${ic('download')}Download Excel</button></div></form>`,'xl');
   refreshReport();
 }
 function reportRange(){
@@ -627,47 +630,53 @@ function reportRange(){
   return {from:new Date(a,b-1,c,0,0,0,0),to:new Date(d,e-1,g,23,59,59,999),f,t};
 }
 const inRange=(d,r)=>d>=r.from&&d<=r.to;
-function reportData(r){
-  return {codes:codes.filter(c=>inRange(c.requestedAt,r)).sort((a,b)=>a.requestedAt-b.requestedAt),
-          mods:reqs.filter(x=>inRange(x.requestedAt,r)).sort((a,b)=>a.requestedAt-b.requestedAt)};
+const REPORT_HEAD=['Date','Created By','Description','Status','Code','Notes','Code Creation Date','Modification Request Date','Modification Status','What Was Modified'];
+const SUMMARY_HEAD=['','Received','Approved','Rejected','Pending'];
+/* En el reporte, una modificación completada se muestra como Approved */
+const modStatus=m=>m.status==='Completed'?'Approved':m.status;
+const modWhat=m=>m.status==='Completed'
+  ?m.changes.map(x=>`${x.field}: ${x.from||'(empty)'} → ${x.to||'(empty)'}`).join('; ')
+  :`Requested: ${m.fields.join(', ')}. ${m.details}`;
+/* DECISIÓN D8: un solo modelo alimenta la vista previa y el Excel */
+function reportModel(r){
+  const received=codes.filter(c=>inRange(c.requestedAt,r));
+  const mods=reqs.filter(m=>inRange(m.requestedAt,r)).sort((a,b)=>a.requestedAt-b.requestedAt);
+  const inDetail=[...new Set([...received,...mods.map(m=>codeOf(m.codeId))])].sort((a,b)=>a.requestedAt-b.requestedAt);
+  const rows=inDetail.flatMap(c=>{
+    const base=[c.requestedAt,c.requestedBy,c.description,c.status,c.sapCode,c.notes,c.createdAt];
+    const own=mods.filter(m=>m.codeId===c.id);
+    if(!own.length) return [[...base,null,null,null]];
+    /* Si hay varias modificaciones, cada una adicional va en una fila debajo, sin repetir la solicitud */
+    return own.map((m,i)=>[...(i?base.map(()=>null):base),m.requestedAt,modStatus(m),modWhat(m)]);
+  });
+  const count=(l,fn)=>l.filter(fn).length;
+  return {rows,summary:[
+    ['Code Requests',received.length,count(received,c=>c.createdAt),count(received,c=>c.status==='Rejected'),count(received,c=>c.status==='Pending')],
+    ['Modification Requests',mods.length,count(mods,m=>m.status==='Completed'),count(mods,m=>m.status==='Rejected'),count(mods,m=>m.status==='Pending')]
+  ]};
 }
 function refreshReport(){
   const r=reportRange(), bad=!r||r.from>r.to;
   $('#eRange').textContent=bad?'Select a valid date range.':'';
   $('#bRep').disabled=bad;
-  if(bad){$('#rCounts').innerHTML='';return;}
-  const d=reportData(r);
-  $('#rCounts').innerHTML=`<div><b>${d.codes.length}</b><span>Code requests</span></div><div><b>${d.mods.length}</b><span>Modification requests</span></div>`;
+  if(bad){$('#rPreview').innerHTML='';return;}
+  const m=reportModel(r), show=v=>v instanceof Date?fmtDT(v):esc(v);
+  $('#rPreview').innerHTML=`<h4 class="rt">Summary</h4>
+    <div class="card tw"><table class="t rs"><thead><tr>${SUMMARY_HEAD.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+      <tbody>${m.summary.map(s=>`<tr>${s.map((v,i)=>`<td>${i?v:`<b>${v}</b>`}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    <h4 class="rt">Detail</h4>
+    <div class="card tw"><table class="t rd"><thead><tr>${REPORT_HEAD.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+      <tbody>${m.rows.map(x=>`<tr>${x.map(v=>`<td>${show(v)}</td>`).join('')}</tr>`).join('')||`<tr><td class="nodata" colspan="10">No data available</td></tr>`}</tbody></table></div>`;
 }
 const xlDate=d=>d?{t:'n',v:(d.getTime()-d.getTimezoneOffset()*60000)/86400000+25569,z:'mm/dd/yyyy hh:mm AM/PM'}:null;
-const orNull=v=>v===''||v==null?null:v;
 function buildWorkbook(r){
-  const d=reportData(r), wb=XLSX.utils.book_new();
-  /* DECISIÓN D8: una fila por solicitud, con la última modificación completada */
-  const h1=['Description','Quantity Created','Request Date','Requested By','Creation Date','SAP Code','Notes',
-    'Has Modifications','Modification Request Date','Modification Requested By','Modified By','Modification Date','Modification Reason','What Was Modified'];
-  const s1=d.codes.map(c=>{
-    const done=reqsOf(c.id).filter(x=>x.status==='Completed'), m=done[0];
-    return [c.description,c.quantity,xlDate(c.requestedAt),c.requestedBy,xlDate(c.createdAt),orNull(c.sapCode),orNull(c.notes),
-      done.length?'Yes':'No',
-      m?xlDate(m.requestedAt):null,m?m.requestedBy:null,m?m.completedBy:null,m?xlDate(m.completedAt):null,m?m.reason:null,
-      m?m.changes.map(x=>`${x.field}: ${x.from||'(empty)'} → ${x.to||'(empty)'}`).join('; '):null];
-  });
-  /* Una fila por campo cambiado; las solicitudes sin cambios ocupan una fila */
-  const h2=['SAP Code','Description','Request Status','Requested Fields','Change Details','Reason','Requested By','Request Date','Modified By','Modification Date','Field','Previous Value','New Value','Rejection Reason'];
-  const s2=d.mods.flatMap(m=>{
-    const c=codeOf(m.codeId);
-    const base=[orNull(c.sapCode),c.description,m.status,m.fields.join(', '),m.details,m.reason,m.requestedBy,xlDate(m.requestedAt),orNull(m.completedBy),xlDate(m.completedAt)];
-    return m.changes.length?m.changes.map(x=>[...base,x.field,orNull(x.from),orNull(x.to),null]):[[...base,null,null,null,orNull(m.rejectReason)]];
-  });
-  const sheet=(head,rows,widths)=>{
-    const ws=XLSX.utils.aoa_to_sheet([head,...rows]);
-    ws['!cols']=widths.map(w=>({wch:w}));
-    ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:rows.length,c:head.length-1}})};
-    return ws;
-  };
-  XLSX.utils.book_append_sheet(wb,sheet(h1,s1,[34,10,19,20,19,12,28,12,19,22,20,19,36,46]),'Code Requests');
-  XLSX.utils.book_append_sheet(wb,sheet(h2,s2,[12,34,12,20,40,36,20,19,20,19,18,22,22,34]),'Modification Details');
+  const m=reportModel(r), wb=XLSX.utils.book_new();
+  const cell=v=>v instanceof Date?xlDate(v):(v===''||v==null?null:v);
+  const top=[['Code Report'],['Period',`${fmtDate(r.from)} - ${fmtDate(r.to)}`],[],['Summary'],SUMMARY_HEAD.map(cell),...m.summary,[],['Detail']];
+  const ws=XLSX.utils.aoa_to_sheet([...top,REPORT_HEAD,...m.rows.map(x=>x.map(cell))]);
+  ws['!cols']=[22,20,34,22,12,30,20,22,14,70].map(w=>({wch:w}));
+  ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:top.length,c:0},e:{r:top.length+m.rows.length,c:REPORT_HEAD.length-1}})};
+  XLSX.utils.book_append_sheet(wb,ws,'Code Report');
   return wb;
 }
 function downloadReport(){
