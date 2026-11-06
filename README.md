@@ -13,10 +13,9 @@ Abra `index.html` en el navegador (doble clic). Necesita internet para cargar la
 - **Code Request:** lista de códigos, botón *Report* y menú ⋯ en Actions con View, Edit, Delete, Modification Requested y Modification History según el estado.
 - **Modification Requests (pestaña nueva):** solicitudes con estado Pending, Completed o Rejected, edición del código con vista previa de cambios y detalle de auditoría.
 - **Report:** calendario para elegir el rango, por defecto el mes actual, y descarga de un Excel con el consolidado arriba y el detalle debajo.
-- **Open BOM y Closed BOMs:** detalle del BOM con la columna *SAP Movement* junto al check de SAP.
 - **Viewing as (encabezado):** cambia de usuario para probar permisos. Solo el rol Stockroom edita o rechaza solicitudes.
 
-Las pestañas Stock, Approved, On Hold, Rejected y Open Orders no cambian y no están construidas en la maqueta.
+La maqueta solo tiene las pestañas Code Request y Modification Requests. El detalle del BOM con *SAP Movement* sigue en el código, pero hoy no se ve porque no tiene pestaña.
 
 ## Reglas pendientes de confirmar
 

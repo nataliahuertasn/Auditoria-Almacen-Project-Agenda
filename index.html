@@ -13,7 +13,7 @@
 
   Decisiones tomadas donde el requerimiento es ambiguo (buscar "DECISIÓN" en el código):
     D1  CODE REQUEST lista todos los códigos. Las pestañas Approved / On Hold / Rejected parecen ser de
-        reservas (la ruta real es /stock-room/reserves-rejected), por eso no se tocan.
+        reservas (la ruta real es /stock-room/reserves-rejected), por eso no se incluyen.
     D2  Request Modification solo aparece en códigos que ya tienen código SAP.
     D3  Un código con una solicitud pendiente no admite otra, pero se puede seguir usando.
     D4  Al completar o rechazar una solicitud, el código vuelve al estado que tenía antes.
@@ -129,7 +129,6 @@ table.t .r{text-align:right}
 .pill{border:1px solid #bdbdbd;background:#fff;color:var(--muted);border-radius:16px;padding:5px 14px;font-size:13px}
 .pill.on{background:var(--primary);border-color:var(--primary);color:#fff}
 .clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-width:170px;max-width:280px}
-.req b{font-weight:500}
 .empty{color:var(--muted2);text-align:center;padding:70px 20px}
 
 /* Modales */
@@ -168,8 +167,6 @@ table.t .r{text-align:right}
 .fl.bad input,.fl.bad textarea{border-bottom:2px solid var(--danger)}
 .err{color:#c62828;font-size:12px;margin-top:3px;min-height:0}
 .req-star{color:var(--danger)}
-.checks{display:flex;gap:6px 20px;flex-wrap:wrap;margin-bottom:16px}
-.checks label{display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer}
 input[type=checkbox]{accent-color:var(--primary);width:18px;height:18px;margin:0;cursor:pointer}
 input[type=checkbox]:disabled{cursor:default;accent-color:#9e9e9e}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 24px}
@@ -298,7 +295,6 @@ const FIELDS=[
   {k:'sapCode',label:'SAP Code'},{k:'description',label:'Description'},{k:'color',label:'Color'},
   {k:'alloy',label:'Alloy'},{k:'uom',label:'Unit of Measure'},{k:'quantity',label:'Quantity Created'},{k:'notes',label:'Notes'}
 ];
-const REQ_OPTIONS=['Color','Alloy','Description','Other'];
 
 const codes=[
   {id:'c1',paCode:'PA-01284',sapCode:'90003884',description:'HUACAL GENERICO',color:'N/A',alloy:'N/A',uom:'UN',quantity:8,requestedBy:'Laura Mendoza',requestedAt:mon(-1,6,8,40),createdAt:mon(-1,6,15,10),status:'Approved',notes:'Wood crate for packing'},
@@ -316,14 +312,14 @@ const codes=[
   {id:'c12',paCode:'PA-01309',sapCode:'',description:'SETTING BLOCK 100MM',color:'Black',alloy:'',uom:'UN',quantity:350,requestedBy:'Andrés Pineda',requestedAt:cur(2,14,12),createdAt:null,status:'Pending',notes:''}
 ];
 const reqs=[
-  {id:'MR-0001',codeId:'c1',fields:['Description'],details:'Use the generic crate name.',reason:'Name did not match the SAP catalog.',status:'Completed',prevStatus:'Approved',requestedBy:'Andrés Pineda',requestedAt:mon(-1,12,9,10),completedBy:'Carolina Ruiz',completedAt:mon(-1,12,16,30),rejectReason:'',
+  {id:'MR-0001',codeId:'c1',details:'Use the generic crate name.',reason:'Name did not match the SAP catalog.',status:'Completed',prevStatus:'Approved',requestedBy:'Andrés Pineda',requestedAt:mon(-1,12,9,10),completedBy:'Carolina Ruiz',completedAt:mon(-1,12,16,30),rejectReason:'',
     changes:[{field:'Description',from:'HUACAL ESTANDAR',to:'HUACAL GENERICO'}]},
-  {id:'MR-0002',codeId:'c1',fields:['Other'],details:'Add usage to the notes.',reason:'Packing needs to identify the crate.',status:'Completed',prevStatus:'Approved',requestedBy:'Laura Mendoza',requestedAt:cur(4,10,0),completedBy:'Carolina Ruiz',completedAt:cur(3,11,20),rejectReason:'',
+  {id:'MR-0002',codeId:'c1',details:'Add usage to the notes.',reason:'Packing needs to identify the crate.',status:'Completed',prevStatus:'Approved',requestedBy:'Laura Mendoza',requestedAt:cur(4,10,0),completedBy:'Carolina Ruiz',completedAt:cur(3,11,20),rejectReason:'',
     changes:[{field:'Notes',from:'',to:'Wood crate for packing'}]},
-  {id:'MR-0003',codeId:'c5',fields:['Color','Other'],details:'Color should be White. SAP code must point to the new material.',reason:'Finish was changed after client approval.',status:'Completed',prevStatus:'Approved',requestedBy:'Laura Mendoza',requestedAt:cur(4,8,45),completedBy:'Carolina Ruiz',completedAt:cur(2,15,5),rejectReason:'',
+  {id:'MR-0003',codeId:'c5',details:'Color should be White. SAP code must point to the new material.',reason:'Finish was changed after client approval.',status:'Completed',prevStatus:'Approved',requestedBy:'Laura Mendoza',requestedAt:cur(4,8,45),completedBy:'Carolina Ruiz',completedAt:cur(2,15,5),rejectReason:'',
     changes:[{field:'SAP Code',from:'90003788',to:'90003790'},{field:'Color',from:'Off White',to:'White'}]},
-  {id:'MR-0004',codeId:'c4',fields:['Alloy'],details:'Change the alloy to 5005.',reason:'Requested by mistake for another project.',status:'Rejected',prevStatus:'Approved',requestedBy:'Andrés Pineda',requestedAt:cur(1,9,30),completedBy:'Carolina Ruiz',completedAt:cur(1,13,0),rejectReason:'Alloy 5052 is correct for this project.',changes:[]},
-  {id:'MR-0005',codeId:'c2',fields:['Color','Alloy'],details:'Change the finish to Bronze and the alloy to 6005-T5.',reason:'Engineering revision B of the shop drawings.',status:'Pending',prevStatus:'Approved',requestedBy:'Laura Mendoza',requestedAt:cur(0,8,10),completedBy:'',completedAt:null,rejectReason:'',changes:[]}
+  {id:'MR-0004',codeId:'c4',details:'Change the alloy to 5005.',reason:'Requested by mistake for another project.',status:'Rejected',prevStatus:'Approved',requestedBy:'Andrés Pineda',requestedAt:cur(1,9,30),completedBy:'Carolina Ruiz',completedAt:cur(1,13,0),rejectReason:'Alloy 5052 is correct for this project.',changes:[]},
+  {id:'MR-0005',codeId:'c2',details:'Change the finish to Bronze and the alloy to 6005-T5.',reason:'Engineering revision B of the shop drawings.',status:'Pending',prevStatus:'Approved',requestedBy:'Laura Mendoza',requestedAt:cur(0,8,10),completedBy:'',completedAt:null,rejectReason:'',changes:[]}
 ];
 const boms=[
   {id:'b1',code:'4108-332-6',project:'4108 Harbor Tower Group 2',status:'Closed',createdBy:'Daniela Torres',pm:'Andrés Pineda',createdAt:mon(-1,8,17,13),notes:'4914027761',
@@ -348,10 +344,8 @@ const boms=[
 ];
 
 /* ---------- Estado ---------- */
-const TABS=[
-  ['stock','Stock'],['codes','Code Request'],['mods','Modification Requests'],['approved','Approved'],['hold','On Hold'],
-  ['rejected','Rejected'],['openBom','Open BOM'],['orders','Open Orders'],['closedBom','Closed BOMs']
-];
+/* Solo estas vistas aplican. Las vistas de BOM siguen en el código, pero no tienen pestaña */
+const TABS=[['codes','Code Request'],['mods','Modification Requests']];
 const S={user:USERS[0],tab:'codes',bom:null,statusFilter:'All',statusMenu:false,sortAsc:false,modFilter:'All'};
 const codeOf=id=>codes.find(c=>c.id===id);
 const reqOf=id=>reqs.find(r=>r.id===id);
@@ -477,7 +471,7 @@ function modRow(r){
   const c=codeOf(r.codeId);
   return `<tr>
     <td class="w-code">${esc(c.paCode)}</td><td class="w-code">${esc(c.sapCode)}</td><td>${esc(c.description)}</td>
-    <td><div class="clamp req" title="${esc(r.details)}"><b>${esc(r.fields.join(', '))}:</b> ${esc(r.details)}</div></td>
+    <td><div class="clamp" title="${esc(r.details)}">${esc(r.details)}</div></td>
     <td><div class="clamp" title="${esc(r.reason)}">${esc(r.reason)}</div></td>
     <td>${esc(r.requestedBy)}</td><td class="w-code">${fmtDT(r.requestedAt)}</td><td>${chip(r.status)}</td>
     ${dots('m:'+r.id,'Actions for '+esc(r.id))}</tr>`;
@@ -549,22 +543,17 @@ function requestModal(c){
   openModal(`${mHead('Request Modification')}
     <form id="fReq" data-v="${c.id}" novalidate><div class="mb">
       ${codeInfo(c)}
-      <span class="lg">What do you want to modify? <span class="req-star">*</span></span>
-      <div class="checks">${REQ_OPTIONS.map(o=>`<label><input type="checkbox" name="what" value="${o}">${o}</label>`).join('')}</div>
-      <div class="err" id="eWhat" style="margin:-10px 0 12px"></div>
       <label class="fl"><span>Change details <span class="req-star">*</span></span><textarea id="fDetails" maxlength="500"></textarea><div class="err" id="eDetails"></div></label>
       <label class="fl"><span>Reason for the modification <span class="req-star">*</span></span><textarea id="fReason" maxlength="500"></textarea><div class="err" id="eReason"></div></label>
     </div><div class="mf"><button type="button" class="btn text" data-act="modalClose">Cancel</button><button class="btn">Submit Request</button></div></form>`);
 }
 function submitRequest(form){
   const c=codeOf(form.dataset.v);
-  const what=[...form.querySelectorAll('[name=what]:checked')].map(x=>x.value);
   const details=$('#fDetails').value.trim(), reason=$('#fReason').value.trim();
-  setErr('eWhat',what.length?'':'Select at least one option.');
   setErr('eDetails',details?'':'Describe the change.');
   setErr('eReason',reason?'':'The reason is required.');
-  if(!what.length||!details||!reason||pendingOf(c.id)) return;
-  const r={id:nextReqId(),codeId:c.id,fields:what,details,reason,status:'Pending',prevStatus:c.status,requestedBy:S.user.name,requestedAt:new Date(),completedBy:'',completedAt:null,rejectReason:'',changes:[]};
+  if(!details||!reason||pendingOf(c.id)) return;
+  const r={id:nextReqId(),codeId:c.id,details,reason,status:'Pending',prevStatus:c.status,requestedBy:S.user.name,requestedAt:new Date(),completedBy:'',completedAt:null,rejectReason:'',changes:[]};
   reqs.push(r); c.status='Modification Requested';
   closeModal(); render(); toast(`Modification request ${r.id} created`);
 }
@@ -575,7 +564,7 @@ function editModal(r){
   const inp=(f,extra='')=>`<label class="fl ${f.k==='description'||f.k==='notes'?'full':''}"><span>${f.label}${['sapCode','description'].includes(f.k)?' <span class="req-star">*</span>':''}</span><input data-f="${f.k}" value="${esc(c[f.k])}" ${extra}><div class="err" id="e_${f.k}"></div></label>`;
   openModal(`${mHead('Edit Code')}
     <form id="fEdit" data-v="${r.id}" novalidate><div class="mb">
-      <div class="info"><div><span class="l">Request ${esc(r.id)}:</span> ${esc(r.fields.join(', '))}. ${esc(r.details)}</div>
+      <div class="info"><div><span class="l">Request ${esc(r.id)}:</span> ${esc(r.details)}</div>
         <div><span class="l">Reason:</span> ${esc(r.reason)}</div>
         <div><span class="l">Requested by:</span> ${esc(r.requestedBy)} · ${fmtDT(r.requestedAt)}</div>
         <div><span class="l">PA Code:</span> ${esc(c.paCode)}</div></div>
@@ -636,7 +625,7 @@ function historyModal(c,focus){
   openModal(`${mHead('Modification History')}<div class="mb">${codeInfo(c)}
     ${list.map(r=>`<div class="hitem" ${r.id===focus?'style="border-color:var(--primary)"':''}>
       <div class="hh"><b>${esc(r.id)}</b>${chip(r.status)}</div>
-      <p class="kv"><span class="l">Requested:</span> ${esc(r.fields.join(', '))}. ${esc(r.details)}</p>
+      <p class="kv"><span class="l">Requested:</span> ${esc(r.details)}</p>
       <p class="kv"><span class="l">Reason:</span> ${esc(r.reason)}</p>
       <p class="kv"><span class="l">Requested by:</span> ${esc(r.requestedBy)} · ${fmtDT(r.requestedAt)}</p>
       ${r.status==='Completed'?`<p class="kv"><span class="l">Modified by:</span> ${esc(r.completedBy)} · ${fmtDT(r.completedAt)}</p><div class="diffbox">${diffTable(r.changes)}</div>`:''}
@@ -687,7 +676,7 @@ const SUMMARY_HEAD=['','Received','Approved','Rejected','Pending'];
 const modStatus=m=>m.status==='Completed'?'Approved':m.status;
 const modWhat=m=>m.status==='Completed'
   ?m.changes.map(x=>`${x.field}: ${x.from||'(empty)'} → ${x.to||'(empty)'}`).join('; ')
-  :`Requested: ${m.fields.join(', ')}. ${m.details}`;
+  :`Requested: ${m.details}`;
 /* DECISIÓN D8 */
 function reportModel(r){
   const received=codes.filter(c=>inRange(c.requestedAt,r));
