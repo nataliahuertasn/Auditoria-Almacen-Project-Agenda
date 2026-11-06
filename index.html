@@ -115,10 +115,11 @@ table.t .r{text-align:right}
 .btn.red:hover{background:var(--danger-l)}
 .btn.sm{padding:5px 12px;font-size:11.5px}
 .btn:disabled{background:#e0e0e0;color:#8a8a8a;box-shadow:none;cursor:not-allowed}
-.acts{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
-.hist{position:relative;background:none;border:0;padding:5px;border-radius:50%;color:var(--primary);display:inline-flex}
-.hist:hover{background:var(--primary-l)}
-.hist .n{position:absolute;top:-3px;right:-3px;background:var(--primary);color:#fff;font-size:10px;line-height:15px;min-width:15px;border-radius:8px;text-align:center}
+.dotbtn{border:0;background:none;padding:4px;border-radius:50%;color:#555;display:inline-flex}
+.dotbtn:hover{background:#0000000f;color:var(--primary)}
+.dotbtn:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+.rowmenu{z-index:40;left:auto;min-width:190px}
+.menu button:disabled{color:var(--muted2);background:none;cursor:not-allowed}
 .st{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:500;white-space:nowrap;background:#eee;color:#555}
 .st.Approved,.st.Completed{background:var(--ok-l);color:var(--ok)}
 .st.Pending{background:var(--warn-l);color:var(--warn)}
@@ -416,22 +417,50 @@ function codesView(){
         <th><button class="thbtn" data-act="statusMenu" aria-haspopup="true" aria-expanded="${S.statusMenu}" aria-label="Filter by status">Status ${ic('dots')}</button>
           ${S.statusMenu?`<div class="menu">${statuses.map(s=>`<button class="${S.statusFilter===s?'on':''}" data-act="statusPick" data-v="${s}">${s}</button>`).join('')}</div>`:''}
         </th>
-        <th>Code</th><th>Notes</th><th>Actions</th>
+        <th>Code</th><th>Notes</th><th class="c">Actions</th>
       </tr></thead>
       <tbody>${rows.map(codeRow).join('')||`<tr><td class="nodata" colspan="7">No data available</td></tr>`}</tbody>
     </table></div>`;
 }
+const dots=(k,label)=>`<td class="c"><button class="dotbtn" data-act="rowMenu" data-v="${k}" aria-haspopup="menu" aria-label="${label}" title="Actions">${ic('dots')}</button></td>`;
 function codeRow(c){
-  const n=reqsOf(c.id).length;
-  /* DECISIÓN D2 y D3 */
-  const act=!c.sapCode?'':pendingOf(c.id)
-    ?`<button class="btn sm" disabled title="This code already has a pending modification request">Request Pending</button>`
-    :`<button class="btn sm line" data-act="request" data-v="${c.id}">Request Modification</button>`;
-  const hist=n?`<button class="hist" data-act="history" data-v="${c.id}" title="Modification history" aria-label="Modification history, ${n} records">${ic('history')}<span class="n">${n}</span></button>`:'';
   return `<tr>
     <td class="w-code">${fmtDate(c.requestedAt)}</td><td>${esc(c.requestedBy)}</td><td>${esc(c.description)}</td>
     <td>${chip(c.status)}</td><td class="w-code">${esc(c.sapCode)||'<span class="muted">—</span>'}</td><td>${esc(c.notes)}</td>
-    <td><div class="acts">${act}${hist}</div></td></tr>`;
+    ${dots('c:'+c.id,'Actions for '+esc(c.description))}</tr>`;
+}
+/* Acciones del menú ⋯. DECISIÓN D2 y D3: con una solicitud pendiente la opción queda deshabilitada */
+function codeActions(c){
+  const list=[{label:'View',act:'view',v:c.id}];
+  if(c.status==='Pending') list.push({label:'Edit',act:'existing'},{label:'Delete',act:'existing'});
+  if(c.sapCode) list.push(pendingOf(c.id)
+    ?{label:'Modification Requested',disabled:true,title:'This code already has a pending modification request'}
+    :{label:'Request Modification',act:'request',v:c.id});
+  if(reqsOf(c.id).length) list.push({label:'Modification History',act:'history',v:c.id});
+  return list;
+}
+function modActions(r){
+  const list=[{label:'View Details',act:'history',v:r.codeId,focus:r.id}];
+  if(r.status==='Pending'){
+    const ok=S.user.canEdit, title='Only the Stockroom role can edit or reject requests';
+    list.unshift({label:'Edit Code',act:'edit',v:r.id,disabled:!ok,title},{label:'Reject',act:'reject',v:r.id,disabled:!ok,title});
+  }
+  return list;
+}
+function rowMenu(key,btn){
+  const [type,id]=[key.slice(0,1),key.slice(2)];
+  const items=type==='c'?codeActions(codeOf(id)):modActions(reqOf(id));
+  const b=btn.getBoundingClientRect();
+  const top=b.bottom+window.scrollY+4, right=document.documentElement.clientWidth-b.right;
+  $('#modal').innerHTML=`<div class="menu rowmenu" role="menu" data-for="${key}" style="top:${top}px;right:${right}px">${items.map(i=>
+    `<button role="menuitem" ${i.disabled?`disabled title="${esc(i.title)}"`:`data-act="${i.act}" data-v="${esc(i.v||'')}" ${i.focus?`data-focus="${esc(i.focus)}"`:''}`}>${i.label}</button>`).join('')}</div>`;
+}
+function viewModal(c){
+  const row=(l,v)=>`<p class="kv"><span class="l">${l}:</span> ${esc(v)||'<span class="muted">—</span>'}</p>`;
+  openModal(`${mHead('Code Request')}<div class="mb"><div class="hitem">
+    ${row('Date',fmtDT(c.requestedAt))}${row('Created By',c.requestedBy)}${row('Description',c.description)}${row('Status',c.status)}
+    ${row('Code',c.sapCode)}${row('Code Creation Date',fmtDT(c.createdAt))}${row('Notes',c.notes)}
+  </div></div><div class="mf"><button class="btn" data-act="modalClose">Close</button></div>`);
 }
 
 function modsView(){
@@ -440,23 +469,18 @@ function modsView(){
       <div class="pills">${['All','Pending','Completed','Rejected'].map(s=>`<button class="pill ${S.modFilter===s?'on':''}" data-act="modFilter" data-v="${s}" aria-pressed="${S.modFilter===s}">${s}</button>`).join('')}</div>
     </div>
     <div class="card tw"><table class="t" style="min-width:1160px">
-      <thead><tr><th>PA Code</th><th>SAP Code</th><th>Description</th><th>Requested Change</th><th>Reason</th><th>Requested By</th><th>Request Date</th><th>Status</th><th>Actions</th></tr></thead>
+      <thead><tr><th>PA Code</th><th>SAP Code</th><th>Description</th><th>Requested Change</th><th>Reason</th><th>Requested By</th><th>Request Date</th><th>Status</th><th class="c">Actions</th></tr></thead>
       <tbody>${rows.map(modRow).join('')||`<tr><td class="nodata" colspan="9">No data available</td></tr>`}</tbody>
     </table></div>`;
 }
 function modRow(r){
-  const c=codeOf(r.codeId), ok=S.user.canEdit;
-  const tip=ok?'':`title="Only the Stockroom role can edit or reject requests"`;
-  const act=r.status==='Pending'
-    ?`<button class="btn sm" data-act="edit" data-v="${r.id}" ${ok?'':'disabled'} ${tip}>Edit Code</button>
-      <button class="btn sm red" data-act="reject" data-v="${r.id}" ${ok?'':'disabled'} ${tip}>Reject</button>`
-    :`<button class="btn sm line" data-act="history" data-v="${c.id}" data-focus="${r.id}">View Details</button>`;
+  const c=codeOf(r.codeId);
   return `<tr>
     <td class="w-code">${esc(c.paCode)}</td><td class="w-code">${esc(c.sapCode)}</td><td>${esc(c.description)}</td>
     <td><div class="clamp req" title="${esc(r.details)}"><b>${esc(r.fields.join(', '))}:</b> ${esc(r.details)}</div></td>
     <td><div class="clamp" title="${esc(r.reason)}">${esc(r.reason)}</div></td>
     <td>${esc(r.requestedBy)}</td><td class="w-code">${fmtDT(r.requestedAt)}</td><td>${chip(r.status)}</td>
-    <td><div class="acts">${act}</div></td></tr>`;
+    ${dots('m:'+r.id,'Actions for '+esc(r.id))}</tr>`;
 }
 
 function bomList(status){
@@ -759,6 +783,9 @@ const actions={
   statusPick(v){S.statusFilter=v;S.statusMenu=false;render();},
   modFilter(v){S.modFilter=v;render();},
   report(){reportModal();},
+  rowMenu(v,el){rowMenu(v,el);},
+  view(v){viewModal(codeOf(v));},
+  existing(){closeModal();toast('This action already exists in Project Agenda. It is not part of this mockup.');},
   calMove(v){REP.view=new Date(REP.view.getFullYear(),REP.view.getMonth()+Number(v),1);renderCal();},
   calDay(v){
     if(!REP.picking){REP.from=REP.to=v;REP.picking=true;}
@@ -775,10 +802,12 @@ const actions={
   movEdit(v){delivery(v).editing=true;render();const i=$(`[data-mov="${v}"]`);if(i){i.focus();i.select();}}
 };
 document.addEventListener('click',e=>{
-  /* Un clic fuera cierra el calendario; otro clic en Report también lo cierra */
-  if($('.pop')&&!e.target.closest('.pop')){
+  /* Un clic fuera cierra el calendario o el menú; otro clic en su botón también los cierra */
+  const open=$('.pop,.rowmenu');
+  if(open&&!e.target.closest('.pop,.rowmenu')){
+    const again=open.matches('.pop')?e.target.closest('[data-act=report]'):e.target.closest(`[data-act=rowMenu][data-v="${open.dataset.for}"]`);
     closeModal();
-    if(e.target.closest('[data-act=report]')) return;
+    if(again) return;
   }
   if(e.target.matches('[data-ov]')){closeModal();return;}
   const el=e.target.closest('[data-act]');
