@@ -344,9 +344,10 @@ const boms=[
 ];
 
 /* ---------- Estado ---------- */
-/* Solo estas vistas aplican. Las vistas de BOM siguen en el código, pero no tienen pestaña */
-const TABS=[['codes','Code Request'],['mods','Modification Requests']];
-const S={user:USERS[0],tab:'codes',bom:null,statusFilter:'All',statusMenu:false,sortAsc:false,modFilter:'All'};
+/* El enlace normal muestra los códigos; con ?view=bom muestra solo los BOM con SAP Movement */
+const BOM_VIEW=new URLSearchParams(location.search).get('view')==='bom';
+const TABS=BOM_VIEW?[['openBom','Open BOM'],['closedBom','Closed BOMs']]:[['codes','Code Request'],['mods','Modification Requests']];
+const S={user:USERS[0],tab:TABS[0][0],bom:null,statusFilter:'All',statusMenu:false,sortAsc:false,modFilter:'All'};
 const codeOf=id=>codes.find(c=>c.id===id);
 const reqOf=id=>reqs.find(r=>r.id===id);
 const reqsOf=id=>reqs.filter(r=>r.codeId===id).sort((a,b)=>b.requestedAt-a.requestedAt);
