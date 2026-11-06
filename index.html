@@ -186,30 +186,31 @@ table.d .old{color:#8a8a8a;text-decoration:line-through}
 .hitem .diffbox{margin-top:8px}
 
 /* Detalle BOM */
-.bomh{display:flex;align-items:center;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:24px}
-.bomh h2{margin:0;font-size:32px;font-weight:400;line-height:1.2}
+.bomh{display:flex;align-items:center;gap:10px;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.bomh h2{margin:0;font-size:20px;font-weight:400;line-height:1.3}
 .bomh h2 b{font-weight:700}
 .bomh .iconbtn{color:var(--primary)}
-.bominfo{display:grid;grid-template-columns:1fr 1fr 170px;gap:12px 24px;margin-bottom:36px;color:var(--muted);font-size:16px}
+.bomh .iconbtn svg.i{width:24px;height:24px}
+.bominfo{display:grid;grid-template-columns:1fr 1fr 110px;gap:8px 24px;margin-bottom:20px;color:var(--muted);font-size:13px}
 .bominfo b{font-weight:700}
-.bominfo p{margin:0 0 20px}
+.bominfo p{margin:0 0 10px}
 .bnotes{display:flex;gap:12px;align-items:flex-start;color:var(--text)}
 .bnotes>div{flex:1;border-bottom:1px solid #9e9e9e;padding-bottom:6px;max-width:580px}
-.qr{width:160px;height:160px;justify-self:end}
+.qr{width:104px;height:104px;justify-self:end}
 .items{background:var(--head);border-radius:6px;border:1px solid var(--line)}
-.items h3{margin:0;padding:24px 34px 22px;font-size:24px;font-weight:700}
-table.it{width:100%;border-collapse:collapse;min-width:1020px}
-table.it>thead th{font-size:14px;color:#555;text-transform:uppercase;padding:14px 10px;text-align:center;white-space:nowrap}
-table.it>tbody>tr.row>td{background:#fff;padding:8px 10px;text-align:center;border-top:1px solid #ddd;font-size:17px}
+.items h3{margin:0;padding:14px 20px 12px;font-size:15px;font-weight:700}
+table.it{width:100%;border-collapse:collapse;min-width:960px}
+table.it>thead th{font-size:12px;color:#555;text-transform:uppercase;padding:9px 10px;text-align:center;white-space:nowrap}
+table.it>tbody>tr.row>td{background:#fff;padding:7px 10px;text-align:center;border-top:1px solid #ddd;font-size:13px}
 table.it .desc{text-align:left}
-table.it td.notes{font-size:16px;min-width:300px}
-.dwrap{background:#fff;padding:20px}
+table.it td.notes{font-size:13px;min-width:260px}
+.dwrap{background:#fff;padding:10px 14px}
 .dbox{background:#fff;border:1px solid #e9e9e9;border-radius:6px}
 table.dv{width:100%;border-collapse:collapse;table-layout:fixed}
-table.dv th{background:var(--head);font-size:14px;color:#555;text-transform:uppercase;padding:20px 8px;text-align:center}
-table.dv td{padding:16px 8px;text-align:center;border-top:1px solid #eee;font-size:16px;vertical-align:top;word-break:break-word}
+table.dv th{background:var(--head);font-size:12px;color:#555;text-transform:uppercase;padding:9px 8px;text-align:center}
+table.dv td{padding:8px;text-align:center;border-top:1px solid #eee;font-size:13px;vertical-align:top;word-break:break-word}
 
-.mov input{width:100%;max-width:150px;border:0;border-bottom:1px solid #9e9e9e;text-align:center;padding:3px 2px;outline:0;background:none;font-size:15px}
+.mov input{width:100%;max-width:150px;border:0;border-bottom:1px solid #9e9e9e;text-align:center;padding:2px;outline:0;background:none;font-size:13px}
 .mov input:focus{border-bottom:2px solid var(--primary)}
 .mov.bad input{border-bottom:2px solid var(--danger)}
 .movv{display:inline-flex;align-items:center;gap:4px}
@@ -238,7 +239,7 @@ table.dv td{padding:16px 8px;text-align:center;border-top:1px solid #eee;font-si
   .logo .mark{width:24px;height:24px}
   .bominfo{grid-template-columns:1fr}
   .qr{justify-self:start}
-  .bomh h2{font-size:22px}
+  .bomh h2{font-size:17px}
 }
 @media (max-width:640px){
   header.top{padding:8px 16px;flex-wrap:wrap;gap:8px}
@@ -525,7 +526,7 @@ function qr(seed){
 function bomDetail(b){
   const empty=b.items.some(i=>i.deliveries.some(d=>d.sap&&!d.movement));
   return `<div class="bomh"><button class="iconbtn" data-act="bomClose" title="Close" aria-label="Close">${ic('close')}</button>
-      <h2>Bill Of Material <b>${esc(b.code)} | ${esc(b.project)}</b></h2><span style="flex:1"></span><button class="btn line" data-act="timeline" data-v="${b.id}">Timeline</button></div>
+      <h2>Bill Of Material <b>${esc(b.code)} | ${esc(b.project)}</b></h2><span style="flex:1"></span><button class="iconbtn" data-act="timeline" data-v="${b.id}" title="Timeline" aria-label="Timeline">${ic('history')}</button></div>
     <div class="bominfo">
       <div><p><b>STATUS:</b> ${esc(b.status)}</p><p><b>CREATED BY:</b> ${esc(b.createdBy)}</p><p><b>PROJECT MANAGER:</b> ${esc(b.pm)}</p></div>
       <div><p><b>CREATED:</b> ${fmtDT(b.createdAt)}</p><div class="bnotes">${ic('notes')}<div>Notes: ${esc(b.notes)}</div></div></div>
