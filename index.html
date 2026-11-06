@@ -215,6 +215,18 @@ table.dv td{padding:16px 8px;text-align:center;border-top:1px solid #eee;font-si
 .movv{display:inline-flex;align-items:center;gap:4px}
 .movv button{border:0;background:none;color:var(--primary);padding:2px;display:inline-flex}
 .movv button svg.i{width:15px;height:15px}
+.tl{list-style:none;margin:0;padding:6px 4px 10px;position:relative}
+.tl:before{content:"";position:absolute;left:14px;top:14px;bottom:30px;width:2px;background:#d6d6d6}
+.tl li{position:relative;display:grid;grid-template-columns:30px 1fr auto;gap:0 16px;align-items:start;padding:12px 0}
+.tl div b{display:block;font-weight:700;color:#555}
+.tl div span{display:block;color:var(--muted)}
+.tl small{display:block;color:var(--muted2);font-size:12px}
+.tl time{color:var(--muted);white-space:nowrap}
+.tdot{width:22px;height:22px;margin:0 4px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px #0005;position:relative;background:var(--primary)}
+.tdot.Approved{background:#2eaf4f}
+.tdot.Rejected{background:#e53935}
+.tdot.Delivery{background:#fb8c00}
+.tdot.SAP{background:#42a5f5}
 .hintbar{background:var(--primary-l);color:#0c4a86;font-size:13px;border-radius:4px;padding:8px 12px;margin:0 0 14px}
 
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#323232;color:#fff;padding:10px 18px;border-radius:4px;box-shadow:0 4px 14px #0005;z-index:80;max-width:calc(100vw - 32px)}
@@ -322,23 +334,23 @@ const reqs=[
   {id:'MR-0005',codeId:'c2',details:'Change the finish to Bronze and the alloy to 6005-T5.',reason:'Engineering revision B of the shop drawings.',status:'Pending',prevStatus:'Approved',requestedBy:'Laura Mendoza',requestedAt:cur(0,8,10),completedBy:'',completedAt:null,rejectReason:'',changes:[]}
 ];
 const boms=[
-  {id:'b1',code:'4108-332-6',project:'4108 Harbor Tower Group 2',status:'Closed',createdBy:'Daniela Torres',pm:'Andrés Pineda',createdAt:mon(-1,8,17,13),notes:'4914027761',
+  {id:'b1',events:[{status:'Sent',by:'Daniela Torres',at:mon(-1,8,17,30)},{status:'Approved',by:'Andrés Pineda',at:mon(-1,9,8,5)}],code:'4108-332-6',project:'4108 Harbor Tower Group 2',status:'Closed',createdBy:'Daniela Torres',pm:'Andrés Pineda',createdAt:mon(-1,8,17,13),notes:'4914027761',
     items:[
       {index:1,code:'4108-332-6-1',codeId:'c1',description:'90003884 HUACAL GENERICO',total:8,remaining:0,store:'1152',cost:980450.25,notes:'7 und ancho 950 mm, largo 3200 mm, alto 2150 mm. 1 und ancho 950 mm, largo 3000, alto 2150 mm.',
-       deliveries:[{by:'Stockroom2',to:'Packing',date:mon(-1,9,22,9),qty:8,notes:'J. RAMIREZ / E. TORRES',sap:true,movement:''}]},
+       deliveries:[{by:'Stockroom2',to:'Packing',date:mon(-1,9,22,9),qty:8,notes:'J. RAMIREZ / E. TORRES',sap:true,sapBy:'Carolina Ruiz',sapAt:mon(-1,10,8,15),movement:''}]},
       {index:2,code:'4108-332-6-2',codeId:'c5',description:'90003790 ACM PANEL 4MM',total:30,remaining:0,store:'1152',cost:145300,notes:'Podium level',
-       deliveries:[{by:'Stockroom1',to:'Fabrication',date:mon(-1,10,11,30),qty:30,notes:'M. GOMEZ',sap:true,movement:'4914027802'}]}
+       deliveries:[{by:'Stockroom1',to:'Fabrication',date:mon(-1,10,11,30),qty:30,notes:'M. GOMEZ',sap:true,sapBy:'Carolina Ruiz',sapAt:mon(-1,10,15,0),movement:'4914027802'}]}
     ]},
-  {id:'b2',code:'4108-340-2',project:'4108 Harbor Tower Group 3',status:'Open',createdBy:'Daniela Torres',pm:'Andrés Pineda',createdAt:cur(2,10,20),notes:'',
+  {id:'b2',events:[{status:'Sent',by:'Daniela Torres',at:cur(2,10,40)},{status:'Approved',by:'Andrés Pineda',at:cur(2,15,10)}],code:'4108-340-2',project:'4108 Harbor Tower Group 3',status:'Open',createdBy:'Daniela Torres',pm:'Andrés Pineda',createdAt:cur(2,10,20),notes:'',
     items:[
       {index:1,code:'4108-340-2-1',codeId:'c2',description:'90004127 ALUMINUM EXTRUSION 6063-T5 6M',total:120,remaining:40,store:'1152',cost:212800.5,notes:'Mullions, levels 3 to 6',
        deliveries:[
-         {by:'Stockroom2',to:'Fabrication',date:cur(1,9,40),qty:50,notes:'J. RAMIREZ',sap:true,movement:'4914031190'},
+         {by:'Stockroom2',to:'Fabrication',date:cur(1,9,40),qty:50,notes:'J. RAMIREZ',sap:true,sapBy:'Carolina Ruiz',sapAt:cur(1,14,0),movement:'4914031190'},
          {by:'Stockroom2',to:'Fabrication',date:cur(0,8,5),qty:30,notes:'E. TORRES',sap:false,movement:''}
        ]},
       {index:2,code:'4108-340-2-2',codeId:'c3',description:'90004133 ANGLE 2X2 IN ANODIZED',total:60,remaining:60,store:'1149',cost:58200,notes:'',deliveries:[]}
     ]},
-  {id:'b3',code:'3977-118-1',project:'3977 Riverside Plaza Group 1',status:'Open',createdBy:'Felipe Arango',pm:'Andrés Pineda',createdAt:cur(1,14,0),notes:'',
+  {id:'b3',events:[{status:'Sent',by:'Felipe Arango',at:cur(1,14,10)},{status:'Rejected',by:'Andrés Pineda',at:cur(1,15,0),note:'Store is missing on item 1'},{status:'Sent',by:'Felipe Arango',at:cur(1,16,20)},{status:'Approved',by:'Andrés Pineda',at:cur(0,8,30)}],code:'3977-118-1',project:'3977 Riverside Plaza Group 1',status:'Open',createdBy:'Felipe Arango',pm:'Andrés Pineda',createdAt:cur(1,14,0),notes:'',
     items:[{index:1,code:'3977-118-1-1',codeId:'c4',description:'90004140 ALUMINUM SHEET 3MM',total:45,remaining:15,store:'1152',cost:176940,notes:'Soffit panels',
       deliveries:[{by:'Stockroom1',to:'Fabrication',date:cur(0,9,15),qty:30,notes:'M. GOMEZ',sap:false,movement:''}]}]}
 ];
@@ -444,7 +456,7 @@ function modActions(r){
 }
 function rowMenu(key,btn){
   const [type,id]=[key.slice(0,1),key.slice(2)];
-  const items=type==='c'?codeActions(codeOf(id)):modActions(reqOf(id));
+  const items=type==='b'?[{label:'View',act:'bom',v:id},{label:'Timeline',act:'timeline',v:id}]:type==='c'?codeActions(codeOf(id)):modActions(reqOf(id));
   const b=btn.getBoundingClientRect();
   const top=b.bottom+window.scrollY+4, right=document.documentElement.clientWidth-b.right;
   $('#modal').innerHTML=`<div class="menu rowmenu" role="menu" data-for="${key}" style="top:${top}px;right:${right}px">${items.map(i=>
@@ -480,10 +492,27 @@ function modRow(r){
 
 function bomList(status){
   const rows=boms.filter(b=>b.status===status);
-  return `<div class="card tw"><table class="t" style="min-width:820px">
-    <thead><tr><th>BOM</th><th>Project</th><th>Created</th><th>Created By</th><th>Project Manager</th><th class="c">Items</th></tr></thead>
-    <tbody>${rows.map(b=>`<tr class="link" tabindex="0" data-act="bom" data-v="${b.id}"><td class="w-code"><b>${esc(b.code)}</b></td><td>${esc(b.project)}</td><td class="w-code">${fmtDT(b.createdAt)}</td><td>${esc(b.createdBy)}</td><td>${esc(b.pm)}</td><td class="c">${b.items.length}</td></tr>`).join('')||`<tr><td class="nodata" colspan="6">No data available</td></tr>`}</tbody>
+  return `<div class="bar"><span class="sp"></span><button class="btn line" data-act="report">${ic('download')}Report</button></div>
+  <div class="card tw"><table class="t" style="min-width:880px">
+    <thead><tr><th>BOM</th><th>Project</th><th>Created</th><th>Created By</th><th>Project Manager</th><th class="c">Items</th><th class="c">Actions</th></tr></thead>
+    <tbody>${rows.map(b=>`<tr class="link" tabindex="0" data-act="bom" data-v="${b.id}"><td class="w-code"><b>${esc(b.code)}</b></td><td>${esc(b.project)}</td><td class="w-code">${fmtDT(b.createdAt)}</td><td>${esc(b.createdBy)}</td><td>${esc(b.pm)}</td><td class="c">${b.items.length}</td>${dots('b:'+b.id,'Actions for '+esc(b.code))}</tr>`).join('')||`<tr><td class="nodata" colspan="7">No data available</td></tr>`}</tbody>
   </table></div>`;
+}
+/* Timeline del BOM: Sent, Approved y Rejected vienen del flujo; Delivery y SAP salen de cada entrega */
+const fmtTL=d=>`${iso(d)} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
+function timelineOf(b){
+  const fromDeliveries=b.items.flatMap(i=>i.deliveries.flatMap(d=>{
+    const list=[{status:'Delivery',by:d.by,at:d.date,note:`${i.code} · ${d.qty} delivered to ${d.to}`}];
+    if(d.sap) list.push({status:'SAP',by:d.sapBy,at:d.sapAt,note:d.movement?`SAP Movement ${d.movement}`:'No SAP Movement yet'});
+    return list;
+  }));
+  return [...b.events,...fromDeliveries].sort((x,y)=>x.at-y.at);
+}
+function timelineModal(b){
+  openModal(`${mHead('BOM '+b.code)}<div class="mb"><ul class="tl">${timelineOf(b).map(e=>`<li>
+      <span class="tdot ${e.status}"></span>
+      <div><b>${esc(e.status)}</b><span>${esc(e.by)}</span>${e.note?`<small>${esc(e.note)}</small>`:''}</div>
+      <time>${fmtTL(e.at)}</time></li>`).join('')}</ul></div>`);
 }
 function qr(seed){
   let s=[...seed].reduce((a,ch)=>a*31+ch.charCodeAt(0)>>>0,7), out='';
@@ -496,7 +525,7 @@ function qr(seed){
 function bomDetail(b){
   const empty=b.items.some(i=>i.deliveries.some(d=>d.sap&&!d.movement));
   return `<div class="bomh"><button class="iconbtn" data-act="bomClose" title="Close" aria-label="Close">${ic('close')}</button>
-      <h2>Bill Of Material <b>${esc(b.code)} | ${esc(b.project)}</b></h2></div>
+      <h2>Bill Of Material <b>${esc(b.code)} | ${esc(b.project)}</b></h2><span style="flex:1"></span><button class="btn line" data-act="timeline" data-v="${b.id}">Timeline</button></div>
     <div class="bominfo">
       <div><p><b>STATUS:</b> ${esc(b.status)}</p><p><b>CREATED BY:</b> ${esc(b.createdBy)}</p><p><b>PROJECT MANAGER:</b> ${esc(b.pm)}</p></div>
       <div><p><b>CREATED:</b> ${fmtDT(b.createdAt)}</p><div class="bnotes">${ic('notes')}<div>Notes: ${esc(b.notes)}</div></div></div>
@@ -715,36 +744,54 @@ function xlBody(cell,value,align){
   cell.border=XL_BOX;
   cell.alignment={horizontal:align||'left',vertical:'middle',wrapText:true};
 }
+/* Contenido del reporte de BOM: una fila por entrega dentro del rango */
+const BOM_HEAD=['BOM','Project','BOM Status','Item Code','Description','Delivered By','Delivered To','Date','Delivered','Notes','SAP','SAP Movement'];
+function bomReport(r){
+  const list=boms.flatMap(b=>b.items.flatMap(i=>i.deliveries.filter(d=>inRange(d.date,r)).map(d=>({b,i,d}))))
+    .sort((x,y)=>x.d.date-y.d.date);
+  const inSap=list.filter(x=>x.d.sap);
+  return {title:'BOM Report',
+    summaryHead:['','Total','In SAP','Not in SAP','Without SAP Movement'],
+    summary:[['Deliveries',list.length,inSap.length,list.length-inSap.length,inSap.filter(x=>!x.d.movement).length]],
+    head:BOM_HEAD,
+    rows:list.map(({b,i,d})=>[b.code,b.project,b.status,i.code,i.description,d.by,d.to,d.date,d.qty,d.notes,d.sap?'Yes':'No',d.movement]),
+    widths:[14,30,14,16,46,16,16,20,13,26,8,16],
+    center:[2,8,10,11]};
+}
+function codeReport(r){
+  const m=reportModel(r);
+  return {title:'Code Report',summaryHead:SUMMARY_HEAD,summary:m.summary,head:REPORT_HEAD,rows:m.rows,widths:XL_WIDTHS,center:[4,8]};
+}
 function buildWorkbook(r){
-  const m=reportModel(r), wb=new ExcelJS.Workbook();
-  const ws=wb.addWorksheet('Code Report',{
+  const m=BOM_VIEW?bomReport(r):codeReport(r), wb=new ExcelJS.Workbook();
+  const ws=wb.addWorksheet(m.title,{
     views:[{showGridLines:false}],
     pageSetup:{orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0}
   });
-  ws.columns=XL_WIDTHS.map(width=>({width}));
+  ws.columns=m.widths.map(width=>({width}));
   const title=(row,text,size)=>{const c=ws.getCell(row,1);c.value=text;c.font={bold:true,size:size||12,color:{argb:'FF0D3B5C'}};};
-  title(1,'Code Report',16);
+  title(1,m.title,16);
   ws.getCell(2,1).value='Period';
   ws.getCell(2,1).font={bold:true};
   ws.getCell(2,2).value=`${fmtDate(r.from)} - ${fmtDate(r.to)}`;
   title(4,'Summary');
-  SUMMARY_HEAD.forEach((h,i)=>{if(h) xlHeader(ws.getCell(5,i+1),h);});
+  m.summaryHead.forEach((h,i)=>{if(h) xlHeader(ws.getCell(5,i+1),h);});
   m.summary.forEach((s,y)=>s.forEach((v,x)=>{
     const c=ws.getCell(6+y,x+1);
     xlBody(c,v,x?'center':'left');
     if(!x) c.font={bold:true};
   }));
-  title(9,'Detail');
-  const head=10;
-  REPORT_HEAD.forEach((h,i)=>xlHeader(ws.getCell(head,i+1),h));
+  const detail=7+m.summary.length, head=detail+1;
+  title(detail,'Detail');
+  m.head.forEach((h,i)=>xlHeader(ws.getCell(head,i+1),h));
   ws.getRow(head).height=32;
   m.rows.forEach((row,y)=>{
-    row.forEach((v,x)=>xlBody(ws.getCell(head+1+y,x+1),v,x===4||x===8?'center':'left'));
+    row.forEach((v,x)=>xlBody(ws.getCell(head+1+y,x+1),v,m.center.includes(x)?'center':'left'));
     /* Excel no siempre ajusta el alto al abrir: se calcula según el texto más largo de la fila */
-    const lines=Math.max(1,...row.map((v,x)=>typeof v==='string'?Math.ceil(v.length/(XL_WIDTHS[x]*1.2)):1));
+    const lines=Math.max(1,...row.map((v,x)=>typeof v==='string'?Math.ceil(v.length/(m.widths[x]*1.2)):1));
     ws.getRow(head+1+y).height=Math.max(18,lines*15+3);
   });
-  ws.autoFilter={from:{row:head,column:1},to:{row:head+m.rows.length,column:REPORT_HEAD.length}};
+  ws.autoFilter={from:{row:head,column:1},to:{row:head+m.rows.length,column:m.head.length}};
   return wb;
 }
 async function downloadReport(){
@@ -754,7 +801,7 @@ async function downloadReport(){
   const buf=await buildWorkbook(r).xlsx.writeBuffer();
   const url=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
   const a=document.createElement('a');
-  a.href=url; a.download=`Code_Report_${r.f}_${r.t}.xlsx`;
+  a.href=url; a.download=`${BOM_VIEW?'BOM':'Code'}_Report_${r.f}_${r.t}.xlsx`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
   closeModal(); toast('Report downloaded');
@@ -773,6 +820,7 @@ const actions={
   statusPick(v){S.statusFilter=v;S.statusMenu=false;render();},
   modFilter(v){S.modFilter=v;render();},
   report(){reportModal();},
+  timeline(v){timelineModal(boms.find(b=>b.id===v));},
   rowMenu(v,el){rowMenu(v,el);},
   view(v){viewModal(codeOf(v));},
   existing(){closeModal();toast('This action already exists in Project Agenda. It is not part of this mockup.');},
@@ -835,7 +883,9 @@ document.addEventListener('change',e=>{
   if(t.matches('[data-sap]')){
     const d=delivery(t.dataset.sap);
     if(t.checked&&!d.movement){ d.err=true; render(); return; }
-    d.sap=t.checked; d.err=false; d.editing=false; render();
+    d.sap=t.checked; d.err=false; d.editing=false;
+    d.sapBy=t.checked?S.user.name:''; d.sapAt=t.checked?new Date():null;
+    render();
   }
 });
 render();
