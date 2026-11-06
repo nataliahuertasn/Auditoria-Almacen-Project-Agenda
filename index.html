@@ -433,9 +433,9 @@ function codeRow(c){
 function codeActions(c){
   const list=[{label:'View',act:'view',v:c.id}];
   if(c.status==='Pending') list.push({label:'Edit',act:'existing'},{label:'Delete',act:'existing'});
-  if(c.sapCode) list.push(pendingOf(c.id)
-    ?{label:'Modification Requested',disabled:true,title:'This code already has a pending modification request'}
-    :{label:'Request Modification',act:'request',v:c.id});
+  /* La opción sale en todas las filas; solo se activa si el código existe y no tiene una solicitud pendiente */
+  const blocked=!c.sapCode?'Available once the code is created':pendingOf(c.id)?'This code already has a pending modification request':'';
+  list.push(blocked?{label:'Modification Requested',disabled:true,title:blocked}:{label:'Modification Requested',act:'request',v:c.id});
   if(reqsOf(c.id).length) list.push({label:'Modification History',act:'history',v:c.id});
   return list;
 }

@@ -10,7 +10,7 @@ Abra `index.html` en el navegador (doble clic). Necesita internet para cargar la
 
 ## Qué muestra
 
-- **Code Request:** lista de códigos, botón *Report* y menú ⋯ en Actions con View, Edit, Delete, Request Modification y Modification History según el estado.
+- **Code Request:** lista de códigos, botón *Report* y menú ⋯ en Actions con View, Edit, Delete, Modification Requested y Modification History según el estado.
 - **Modification Requests (pestaña nueva):** solicitudes con estado Pending, Completed o Rejected, edición del código con vista previa de cambios y detalle de auditoría.
 - **Report:** calendario para elegir el rango, por defecto el mes actual, y descarga de un Excel con el consolidado arriba y el detalle debajo.
 - **Open BOM y Closed BOMs:** detalle del BOM con la columna *SAP Movement* junto al check de SAP.
@@ -24,7 +24,7 @@ Están marcadas como `DECISIÓN` en `index.html`.
 
 | Tema | Regla usada en la maqueta |
 |---|---|
-| Dónde está el botón | En Code Request, solo en códigos que ya tienen código SAP |
+| Opción Modification Requested | Sale en todas las filas de Code Request; solo se activa en códigos que ya tienen código SAP |
 | Código con solicitud pendiente | Se puede seguir usando, pero no admite otra solicitud |
 | Estado final del código | Vuelve al estado que tenía antes de la solicitud |
 | Permisos | Cualquiera solicita; solo Stockroom edita o rechaza |
