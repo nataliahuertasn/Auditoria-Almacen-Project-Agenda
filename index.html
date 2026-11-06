@@ -135,12 +135,23 @@ table.t .r{text-align:right}
 .ov{position:fixed;inset:0;background:#0007;display:flex;align-items:flex-start;justify-content:center;padding:32px 16px;overflow:auto;z-index:50}
 .modal{background:#fff;border-radius:6px;width:min(560px,100%);box-shadow:0 8px 28px #0004}
 .modal.wide{width:min(820px,100%)}
-.modal.xl{width:min(1240px,100%)}
-.rt{margin:14px 0 6px;font-size:13px;font-weight:700;color:#555;text-transform:uppercase}
-table.rs{min-width:520px}
-table.rd{min-width:1320px}
-table.rs th,table.rd th{padding:10px 12px;white-space:normal;font-size:12px}
-table.rs td,table.rd td{padding:8px 12px;font-size:13px}
+.modal.cal{width:min(340px,100%);overflow:hidden}
+.calh{background:var(--primary);color:#fff;padding:14px 20px}
+.calh span{display:block;font-size:15px;font-weight:500;opacity:.7}
+.calh strong{display:block;font-size:32px;font-weight:500;line-height:1.2}
+.caln{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px}
+.caln b{font-size:15px;font-weight:700}
+.caln button{border:0;background:none;width:32px;height:32px;border-radius:50%;font-size:24px;line-height:1;color:#555}
+.caln button:hover{background:#0000000d}
+.calw,.cald{display:grid;grid-template-columns:repeat(7,1fr);padding:0 12px;justify-items:center}
+.calw{gap:2px}
+.calw span{width:100%;background:var(--head);text-align:center;color:#757575;font-size:12px;font-weight:700;padding:7px 0}
+.cald{gap:2px 0;padding-top:6px;padding-bottom:6px;min-height:232px;align-content:start}
+.day{width:36px;height:36px;border:0;border-radius:50%;background:none;font-size:13px;font-weight:500;color:var(--text)}
+.day:hover{background:var(--primary-l)}
+.day.today{box-shadow:inset 0 0 0 1px var(--primary)}
+.day.on{background:#4690dc;color:#fff}
+.day:focus-visible,.caln button:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
 .mh{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:18px 24px 10px}
 .mh h3{margin:0;font-size:20px;font-weight:500}
 .mb{padding:6px 24px 12px}
@@ -501,7 +512,7 @@ const delivery=k=>{const [b,i,n]=k.split('|');return boms.find(x=>x.id===b).item
 /* ---------- Modales ---------- */
 
 function openModal(html,wide){
-  $('#modal').innerHTML=`<div class="ov" data-ov><div class="modal ${wide==='xl'?'xl':wide?'wide':''}" role="dialog" aria-modal="true" aria-labelledby="mTitle">${html}</div></div>`;
+  $('#modal').innerHTML=`<div class="ov" data-ov><div class="modal ${wide==='cal'?'cal':wide?'wide':''}" role="dialog" aria-modal="true" aria-labelledby="mTitle">${html}</div></div>`;
   const f=$('#modal [data-autofocus]')||$('#modal input,#modal textarea,#modal button');
   if(f) f.focus();
 }
@@ -611,23 +622,36 @@ function historyModal(c,focus){
 }
 
 /* ---------- Reporte Excel ---------- */
+/* Calendario de rango del reporte: primer clic marca el inicio, segundo clic marca el fin */
+const REP={from:'',to:'',view:null,picking:false};
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const isoToDate=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
 function reportModal(){
-  const from=new Date(NOW.getFullYear(),NOW.getMonth(),1), to=new Date(NOW.getFullYear(),NOW.getMonth()+1,0);
-  openModal(`${mHead('Code Report')}<form id="fRep" novalidate><div class="mb">
-      <div class="grid2" style="max-width:420px">
-        <label class="fl"><span>From</span><input type="date" id="rFrom" value="${iso(from)}"></label>
-        <label class="fl"><span>To</span><input type="date" id="rTo" value="${iso(to)}"></label>
-      </div>
-      <div class="err" id="eRange"></div>
-      <div id="rPreview"></div>
-    </div><div class="mf"><button type="button" class="btn text" data-act="modalClose">Cancel</button><button class="btn" id="bRep">${ic('download')}Download Excel</button></div></form>`,'xl');
-  refreshReport();
+  REP.from=iso(new Date(NOW.getFullYear(),NOW.getMonth(),1));
+  REP.to=iso(new Date(NOW.getFullYear(),NOW.getMonth()+1,0));
+  REP.view=new Date(NOW.getFullYear(),NOW.getMonth(),1);
+  REP.picking=false;
+  openModal(`<form id="fRep" novalidate><div id="cal"></div>
+    <div class="mf"><button type="button" class="btn text" data-act="modalClose">Cancel</button><button class="btn" data-autofocus>${ic('download')}Download Excel</button></div></form>`,'cal');
+  renderCal();
+}
+function renderCal(){
+  const v=REP.view, y=v.getFullYear(), mo=v.getMonth(), today=iso(NOW);
+  const days=Math.round((isoToDate(REP.to)-isoToDate(REP.from))/86400000)+1;
+  const blanks=new Date(y,mo,1).getDay(), last=new Date(y,mo+1,0).getDate();
+  let cells='<span></span>'.repeat(blanks);
+  for(let d=1;d<=last;d++){
+    const k=iso(new Date(y,mo,d)), on=k>=REP.from&&k<=REP.to;
+    cells+=`<button type="button" class="day ${on?'on':''} ${k===today?'today':''}" data-act="calDay" data-v="${k}" aria-pressed="${on}" aria-label="${MONTHS[mo]} ${d}, ${y}">${d}</button>`;
+  }
+  $('#cal').innerHTML=`<div class="calh"><span>${isoToDate(REP.from).getFullYear()}</span><strong id="mTitle">${days} selected</strong></div>
+    <div class="caln"><button type="button" data-act="calMove" data-v="-1" aria-label="Previous month">‹</button><b>${MONTHS[mo]} ${y}</b><button type="button" data-act="calMove" data-v="1" aria-label="Next month">›</button></div>
+    <div class="calw">${['S','M','T','W','T','F','S'].map(x=>`<span>${x}</span>`).join('')}</div>
+    <div class="cald">${cells}</div>`;
 }
 function reportRange(){
-  const f=$('#rFrom').value, t=$('#rTo').value;
-  if(!f||!t) return null;
-  const [a,b,c]=f.split('-').map(Number),[d,e,g]=t.split('-').map(Number);
-  return {from:new Date(a,b-1,c,0,0,0,0),to:new Date(d,e-1,g,23,59,59,999),f,t};
+  const a=isoToDate(REP.from), b=isoToDate(REP.to);
+  return {from:a,to:new Date(b.getFullYear(),b.getMonth(),b.getDate(),23,59,59,999),f:REP.from,t:REP.to};
 }
 const inRange=(d,r)=>d>=r.from&&d<=r.to;
 const REPORT_HEAD=['Date','Created By','Description','Status','Code','Notes','Code Creation Date','Modification Request Date','Modification Status','What Was Modified'];
@@ -637,7 +661,7 @@ const modStatus=m=>m.status==='Completed'?'Approved':m.status;
 const modWhat=m=>m.status==='Completed'
   ?m.changes.map(x=>`${x.field}: ${x.from||'(empty)'} → ${x.to||'(empty)'}`).join('; ')
   :`Requested: ${m.fields.join(', ')}. ${m.details}`;
-/* DECISIÓN D8: un solo modelo alimenta la vista previa y el Excel */
+/* DECISIÓN D8 */
 function reportModel(r){
   const received=codes.filter(c=>inRange(c.requestedAt,r));
   const mods=reqs.filter(m=>inRange(m.requestedAt,r)).sort((a,b)=>a.requestedAt-b.requestedAt);
@@ -654,19 +678,6 @@ function reportModel(r){
     ['Code Requests',received.length,count(received,c=>c.createdAt),count(received,c=>c.status==='Rejected'),count(received,c=>c.status==='Pending')],
     ['Modification Requests',mods.length,count(mods,m=>m.status==='Completed'),count(mods,m=>m.status==='Rejected'),count(mods,m=>m.status==='Pending')]
   ]};
-}
-function refreshReport(){
-  const r=reportRange(), bad=!r||r.from>r.to;
-  $('#eRange').textContent=bad?'Select a valid date range.':'';
-  $('#bRep').disabled=bad;
-  if(bad){$('#rPreview').innerHTML='';return;}
-  const m=reportModel(r), show=v=>v instanceof Date?fmtDT(v):esc(v);
-  $('#rPreview').innerHTML=`<h4 class="rt">Summary</h4>
-    <div class="card tw"><table class="t rs"><thead><tr>${SUMMARY_HEAD.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
-      <tbody>${m.summary.map(s=>`<tr>${s.map((v,i)=>`<td>${i?v:`<b>${v}</b>`}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
-    <h4 class="rt">Detail</h4>
-    <div class="card tw"><table class="t rd"><thead><tr>${REPORT_HEAD.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
-      <tbody>${m.rows.map(x=>`<tr>${x.map(v=>`<td>${show(v)}</td>`).join('')}</tr>`).join('')||`<tr><td class="nodata" colspan="10">No data available</td></tr>`}</tbody></table></div>`;
 }
 /* Formato del Excel: sin cuadrícula, recuadro solo en las tablas, títulos y encabezados en negrilla */
 const xlSerial=d=>(d.getTime()-d.getTimezoneOffset()*60000)/86400000+25569;
@@ -745,6 +756,12 @@ const actions={
   statusPick(v){S.statusFilter=v;S.statusMenu=false;render();},
   modFilter(v){S.modFilter=v;render();},
   report(){reportModal();},
+  calMove(v){REP.view=new Date(REP.view.getFullYear(),REP.view.getMonth()+Number(v),1);renderCal();},
+  calDay(v){
+    if(!REP.picking){REP.from=REP.to=v;REP.picking=true;}
+    else{if(v<REP.from){REP.to=REP.from;REP.from=v;}else REP.to=v;REP.picking=false;}
+    renderCal();
+  },
   request(v){requestModal(codeOf(v));},
   history(v,el){historyModal(codeOf(v),el.dataset.focus);},
   edit(v){if(S.user.canEdit)editModal(reqOf(v));},
@@ -776,7 +793,6 @@ document.addEventListener('submit',e=>{
 document.addEventListener('input',e=>{
   const t=e.target;
   if(t.matches('[data-f]')) refreshDiff();
-  if(t.matches('#rFrom,#rTo')) refreshReport();
   if(t.matches('[data-mov]')) t.value=t.value.replace(/\D/g,'');
 });
 document.addEventListener('change',e=>{

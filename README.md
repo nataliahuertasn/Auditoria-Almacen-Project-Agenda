@@ -12,7 +12,7 @@ Abra `index.html` en el navegador (doble clic). Necesita internet para cargar la
 
 - **Code Request:** lista de códigos, botón *Request Modification*, historial por código y botón *Report*.
 - **Modification Requests (pestaña nueva):** solicitudes con estado Pending, Completed o Rejected, edición del código con vista previa de cambios y detalle de auditoría.
-- **Report:** vista previa y Excel con rango de fechas, por defecto el mes actual. Tiene un consolidado arriba y el detalle debajo.
+- **Report:** calendario para elegir el rango, por defecto el mes actual, y descarga de un Excel con el consolidado arriba y el detalle debajo.
 - **Open BOM y Closed BOMs:** detalle del BOM con la columna *SAP Movement* junto al check de SAP.
 - **Viewing as (encabezado):** cambia de usuario para probar permisos. Solo el rol Stockroom edita o rechaza solicitudes.
 
