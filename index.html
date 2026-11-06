@@ -700,7 +700,7 @@ function reportRange(){
   return {from:a,to:new Date(b.getFullYear(),b.getMonth(),b.getDate(),23,59,59,999),f:REP.from,t:REP.to};
 }
 const inRange=(d,r)=>d>=r.from&&d<=r.to;
-const REPORT_HEAD=['Date','Created By','Description','Status','Code','Notes','Code Creation Date','Modification Request Date','Modification Status','What Was Modified'];
+const REPORT_HEAD=['Date','Created By','Description','Status','Code','Notes','Code Creation Date','Modification Request Date','Modification Requested By','Modification Status','Modified By','Modification Date','Modification Reason','What Was Modified'];
 const SUMMARY_HEAD=['','Received','Approved','Rejected','Pending'];
 /* En el reporte, una modificación completada se muestra como Approved */
 const modStatus=m=>m.status==='Completed'?'Approved':m.status;
@@ -715,9 +715,9 @@ function reportModel(r){
   const rows=inDetail.flatMap(c=>{
     const base=[c.requestedAt,c.requestedBy,c.description,c.status,c.sapCode,c.notes,c.createdAt];
     const own=mods.filter(m=>m.codeId===c.id);
-    if(!own.length) return [[...base,null,null,null]];
+    if(!own.length) return [[...base,...Array(REPORT_HEAD.length-base.length).fill(null)]];
     /* Si hay varias modificaciones, cada una adicional va en una fila debajo, sin repetir la solicitud */
-    return own.map((m,i)=>[...(i?base.map(()=>null):base),m.requestedAt,modStatus(m),modWhat(m)]);
+    return own.map((m,i)=>[...(i?base.map(()=>null):base),m.requestedAt,m.requestedBy,modStatus(m),m.status==='Completed'?m.completedBy:null,m.status==='Completed'?m.completedAt:null,m.reason,modWhat(m)]);
   });
   const count=(l,fn)=>l.filter(fn).length;
   return {rows,summary:[
@@ -729,7 +729,7 @@ function reportModel(r){
 const xlSerial=d=>(d.getTime()-d.getTimezoneOffset()*60000)/86400000+25569;
 const XL_LINE={style:'thin',color:{argb:'FFBFBFBF'}};
 const XL_BOX={top:XL_LINE,left:XL_LINE,bottom:XL_LINE,right:XL_LINE};
-const XL_WIDTHS=[23,20,34,23,12,30,22,20,14,70];
+const XL_WIDTHS=[23,20,34,23,12,30,22,20,20,14,20,20,40,70];
 function xlHeader(cell,value){
   cell.value=value;
   cell.font={bold:true};
@@ -780,7 +780,7 @@ function bomReport(r){
 }
 function codeReport(r){
   const m=reportModel(r);
-  return {title:'Code Report',summaryHead:SUMMARY_HEAD,summary:m.summary,head:REPORT_HEAD,rows:m.rows,widths:XL_WIDTHS,center:[4,8]};
+  return {title:'Code Report',summaryHead:SUMMARY_HEAD,summary:m.summary,head:REPORT_HEAD,rows:m.rows,widths:XL_WIDTHS,center:[4,9]};
 }
 function buildWorkbook(r){
   const m=BOM_VIEW?bomReport(r):codeReport(r), wb=new ExcelJS.Workbook();
