@@ -228,6 +228,7 @@ table.dv td{padding:8px;text-align:center;border-top:1px solid #eee;font-size:13
 .tdot.Rejected{background:#e53935}
 .tdot.Delivery{background:#fb8c00}
 .tdot.SAP{background:#42a5f5}
+.tdot.Modified{background:#8e24aa}
 .hintbar{background:var(--primary-l);color:#0c4a86;font-size:13px;border-radius:4px;padding:8px 12px;margin:0 0 14px}
 
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#323232;color:#fff;padding:10px 18px;border-radius:4px;box-shadow:0 4px 14px #0005;z-index:80;max-width:calc(100vw - 32px)}
@@ -346,7 +347,7 @@ const boms=[
     items:[
       {index:1,code:'4108-340-2-1',codeId:'c2',description:'90004127 ALUMINUM EXTRUSION 6063-T5 6M',total:120,remaining:40,store:'1152',cost:212800.5,notes:'Mullions, levels 3 to 6',
        deliveries:[
-         {by:'Stockroom2',to:'Fabrication',date:cur(1,9,40),qty:50,notes:'J. RAMIREZ',sap:true,sapBy:'Carolina Ruiz',sapAt:cur(1,14,0),movement:'4914031190'},
+         {by:'Stockroom2',to:'Fabrication',date:cur(1,9,40),qty:50,notes:'J. RAMIREZ',sap:true,sapBy:'Carolina Ruiz',sapAt:cur(1,14,0),movement:'4914031190',movementLog:[{by:'Carolina Ruiz',at:cur(1,15,30),from:'4914031170',to:'4914031190'}]},
          {by:'Stockroom2',to:'Fabrication',date:cur(0,8,5),qty:30,notes:'E. TORRES',sap:false,movement:''}
        ]},
       {index:2,code:'4108-340-2-2',codeId:'c3',description:'90004133 ANGLE 2X2 IN ANODIZED',total:60,remaining:60,store:'1149',cost:58200,notes:'',deliveries:[]}
@@ -504,7 +505,9 @@ const fmtTL=d=>`${iso(d)} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSe
 function timelineOf(b){
   const fromDeliveries=b.items.flatMap(i=>i.deliveries.flatMap(d=>{
     const list=[{status:'Delivery',by:d.by,at:d.date,note:`${i.code} · ${d.qty} delivered to ${d.to}`}];
-    if(d.sap) list.push({status:'SAP',by:d.sapBy,at:d.sapAt,note:d.movement?`SAP Movement ${d.movement}`:'No SAP Movement yet'});
+    const log=d.movementLog||[], first=log.length?log[0].from:d.movement;
+    if(d.sap) list.push({status:'SAP',by:d.sapBy,at:d.sapAt,note:first?`SAP Movement ${first}`:'No SAP Movement yet'});
+    log.forEach(l=>list.push({status:'SAP Movement Modified',by:l.by,at:l.at,note:`${l.from||'(empty)'} → ${l.to}`}));
     return list;
   }));
   return [...b.events,...fromDeliveries].sort((x,y)=>x.at-y.at);
@@ -876,9 +879,15 @@ document.addEventListener('change',e=>{
   if(t.id==='viewAs'){S.user=USERS.find(u=>u.id===t.value);render();return;}
   if(t.matches('[data-mov]')){
     const d=delivery(t.dataset.mov);
+    const prev=d.movement;
+    if(d.sap&&prev&&!t.value){ d.editing=false; render(); toast('The SAP Movement is required',true); return; }
     d.movement=t.value; d.err=false;
     /* Solo se vuelve a pintar si la entrega ya está marcada, para no perder el clic en el check */
-    if(d.sap){ d.editing=false; if(d.movement) toast('SAP Movement saved'); render(); }
+    if(d.sap){
+      /* Cada cambio queda registrado para el timeline */
+      if(d.movement!==prev) (d.movementLog=d.movementLog||[]).push({by:S.user.name,at:new Date(),from:prev,to:d.movement});
+      d.editing=false; if(d.movement) toast('SAP Movement saved'); render();
+    }
     return;
   }
   if(t.matches('[data-sap]')){
