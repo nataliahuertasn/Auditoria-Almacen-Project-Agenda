@@ -123,6 +123,8 @@ table.t .r{text-align:right}
 .st{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:500;white-space:nowrap;background:#eee;color:#555}
 .st.Approved,.st.Completed{background:var(--ok-l);color:var(--ok)}
 .st.Pending{background:var(--warn-l);color:var(--warn)}
+.st.Sent,.st.Requested,.st.SAP{background:var(--primary-l);color:var(--primary-d)}
+.st.Delivered{background:var(--warn-l);color:var(--warn)}
 .st.Rejected{background:var(--danger-l);color:#b71c1c}
 .st.ModificationRequested{background:var(--primary-l);color:var(--primary-d)}
 .pills{display:flex;gap:6px;flex-wrap:wrap}
@@ -226,12 +228,11 @@ table.dv td{padding:8px;text-align:center;border-top:1px solid #eee;font-size:13
 .tdot{width:22px;height:22px;margin:0 4px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px #0005;position:relative;background:var(--primary)}
 .tdot.Approved{background:#2eaf4f}
 .tdot.Rejected{background:#e53935}
-.tdot.Delivery{background:#fb8c00}
+.tdot.Delivered{background:#fb8c00}
 .tdot.SAP{background:#42a5f5}
 .tdot.Modified{background:#8e24aa}
-.tdot.Created{background:#757575}
+.tdot.InProgress{background:#757575}
 .tdot.Requested{background:#00acc1}
-.tdot.Signed{background:#3949ab}
 .hintbar{background:var(--primary-l);color:#0c4a86;font-size:13px;border-radius:4px;padding:8px 12px;margin:0 0 14px}
 
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#323232;color:#fff;padding:10px 18px;border-radius:4px;box-shadow:0 4px 14px #0005;z-index:80;max-width:calc(100vw - 32px)}
@@ -341,25 +342,27 @@ const reqs=[
 const boms=[
   {id:'b1',events:[{status:'Sent',by:'Daniela Torres',at:mon(-1,8,17,30)},{status:'Approved',by:'Andrés Pineda',at:mon(-1,9,8,5)}],code:'4108-332-6',project:'4108 Harbor Tower Group 2',status:'Closed',createdBy:'Daniela Torres',pm:'Andrés Pineda',createdAt:mon(-1,8,17,13),notes:'4914027761',
     items:[
-      {index:1,code:'4108-332-6-1',codeId:'c1',description:'90003884 HUACAL GENERICO',total:8,remaining:0,store:'1152',cost:980450.25,notes:'7 und ancho 950 mm, largo 3200 mm, alto 2150 mm. 1 und ancho 950 mm, largo 3000, alto 2150 mm.',
-       deliveries:[{by:'Stockroom2',to:'Packing',date:mon(-1,9,22,9),qty:8,notes:'J. RAMIREZ / E. TORRES',requestedBy:'Julián Rojas',requestedAt:mon(-1,9,16,0),signedBy:'J. Ramirez',signedAt:mon(-1,9,22,20),sap:true,sapBy:'Carolina Ruiz',sapAt:mon(-1,10,8,15),movement:''}]},
-      {index:2,code:'4108-332-6-2',codeId:'c5',description:'90003790 ACM PANEL 4MM',total:30,remaining:0,store:'1152',cost:145300,notes:'Podium level',
-       deliveries:[{by:'Stockroom1',to:'Fabrication',date:mon(-1,10,11,30),qty:30,notes:'M. GOMEZ',requestedBy:'Marcela Díaz',requestedAt:mon(-1,10,9,0),signedBy:'M. Gomez',signedAt:mon(-1,10,11,45),sap:true,sapBy:'Carolina Ruiz',sapAt:mon(-1,10,15,0),movement:'4914027802'}]}
+      {index:1,requestedBy:'Julián Rojas',requestedAt:mon(-1,9,16,0),code:'4108-332-6-1',codeId:'c1',description:'90003884 HUACAL GENERICO',total:8,remaining:0,store:'1152',cost:980450.25,notes:'7 und ancho 950 mm, largo 3200 mm, alto 2150 mm. 1 und ancho 950 mm, largo 3000, alto 2150 mm.',
+       deliveries:[{by:'Stockroom2',to:'Packing',date:mon(-1,9,22,9),qty:8,notes:'J. RAMIREZ / E. TORRES',signedBy:'J. Ramirez',sap:true,sapBy:'Carolina Ruiz',sapAt:mon(-1,10,8,15),movement:''}]},
+      {index:2,requestedBy:'Marcela Díaz',requestedAt:mon(-1,10,9,0),code:'4108-332-6-2',codeId:'c5',description:'90003790 ACM PANEL 4MM',total:30,remaining:0,store:'1152',cost:145300,notes:'Podium level',
+       deliveries:[{by:'Stockroom1',to:'Fabrication',date:mon(-1,10,11,30),qty:30,notes:'M. GOMEZ',signedBy:'M. Gomez',sap:true,sapBy:'Carolina Ruiz',sapAt:mon(-1,10,15,0),movement:'4914027802'}]}
     ]},
   {id:'b2',events:[{status:'Sent',by:'Daniela Torres',at:cur(2,10,40)},{status:'Approved',by:'Andrés Pineda',at:cur(2,15,10)}],code:'4108-340-2',project:'4108 Harbor Tower Group 3',status:'Open',createdBy:'Daniela Torres',pm:'Andrés Pineda',createdAt:cur(2,10,20),notes:'',
     items:[
-      {index:1,code:'4108-340-2-1',codeId:'c2',description:'90004127 ALUMINUM EXTRUSION 6063-T5 6M',total:120,remaining:40,store:'1152',cost:212800.5,notes:'Mullions, levels 3 to 6',
+      {index:1,requestedBy:'Julián Rojas',requestedAt:cur(1,8,30),code:'4108-340-2-1',codeId:'c2',description:'90004127 ALUMINUM EXTRUSION 6063-T5 6M',total:120,remaining:40,store:'1152',cost:212800.5,notes:'Mullions, levels 3 to 6',
        deliveries:[
-         {by:'Stockroom2',to:'Fabrication',date:cur(1,9,40),qty:50,notes:'J. RAMIREZ',requestedBy:'Julián Rojas',requestedAt:cur(1,8,30),signedBy:'J. Ramirez',signedAt:cur(1,9,55),sap:true,sapBy:'Carolina Ruiz',sapAt:cur(1,14,0),movement:'4914031190',movementLog:[{by:'Carolina Ruiz',at:cur(1,15,30),from:'4914031170',to:'4914031190'}]},
-         {by:'Stockroom2',to:'Fabrication',date:cur(0,8,5),qty:30,notes:'E. TORRES',requestedBy:'Julián Rojas',requestedAt:cur(0,7,30),signedBy:'',signedAt:null,sap:false,movement:''}
+         {by:'Stockroom2',to:'Fabrication',date:cur(1,9,40),qty:50,notes:'J. RAMIREZ',signedBy:'J. Ramirez',sap:true,sapBy:'Carolina Ruiz',sapAt:cur(1,14,0),movement:'4914031190',sapLog:[{by:'Carolina Ruiz',at:cur(1,15,30),from:'4914031170',to:'4914031190'}]},
+         {by:'Stockroom2',to:'Fabrication',date:cur(0,8,5),qty:30,notes:'E. TORRES',signedBy:'E. Torres',sap:false,movement:''}
        ]},
       {index:2,code:'4108-340-2-2',codeId:'c3',description:'90004133 ANGLE 2X2 IN ANODIZED',total:60,remaining:60,store:'1149',cost:58200,notes:'',deliveries:[]}
     ]},
   {id:'b3',events:[{status:'Sent',by:'Felipe Arango',at:cur(1,14,10)},{status:'Rejected',by:'Andrés Pineda',at:cur(1,15,0),note:'Store is missing on item 1'},{status:'Sent',by:'Felipe Arango',at:cur(1,16,20)},{status:'Approved',by:'Andrés Pineda',at:cur(0,8,30)}],code:'3977-118-1',project:'3977 Riverside Plaza Group 1',status:'Open',createdBy:'Felipe Arango',pm:'Andrés Pineda',createdAt:cur(1,14,0),notes:'',
-    items:[{index:1,code:'3977-118-1-1',codeId:'c4',description:'90004140 ALUMINUM SHEET 3MM',total:30,remaining:0,store:'1152',cost:176940,notes:'Soffit panels',
-      deliveries:[{by:'Stockroom1',to:'Fabrication',date:cur(0,9,15),qty:30,notes:'M. GOMEZ',requestedBy:'Marcela Díaz',requestedAt:cur(0,8,45),signedBy:'M. Gomez',signedAt:cur(0,9,30),sap:false,movement:''}]}]},
+    items:[{index:1,requestedBy:'Marcela Díaz',requestedAt:cur(0,8,45),code:'3977-118-1-1',codeId:'c4',description:'90004140 ALUMINUM SHEET 3MM',total:30,remaining:0,store:'1152',cost:176940,notes:'Soffit panels',
+      deliveries:[{by:'Stockroom1',to:'Fabrication',date:cur(0,9,15),qty:30,notes:'M. GOMEZ',signedBy:'M. Gomez',sap:false,movement:''}]}]},
   {id:'b4',events:[{status:'Sent',by:'Felipe Arango',at:cur(0,7,40)},{status:'Rejected',by:'Andrés Pineda',at:cur(0,8,0),note:'Quantities do not match the shop drawings'}],code:'3977-120-3',project:'3977 Riverside Plaza Group 2',status:'Open',createdBy:'Felipe Arango',pm:'Andrés Pineda',createdAt:cur(0,7,25),notes:'',
-    items:[{index:1,code:'3977-120-3-1',codeId:'c3',description:'90004133 ANGLE 2X2 IN ANODIZED',total:24,remaining:24,store:'1149',cost:58200,notes:'',deliveries:[]}]}
+    items:[{index:1,code:'3977-120-3-1',codeId:'c3',description:'90004133 ANGLE 2X2 IN ANODIZED',total:24,remaining:24,store:'1149',cost:58200,notes:'',deliveries:[]}]},
+  {id:'b5',events:[],code:'3977-121-1',project:'3977 Riverside Plaza Group 3',status:'Open',createdBy:'Felipe Arango',pm:'Andrés Pineda',createdAt:cur(0,7,10),notes:'',
+    items:[{index:1,code:'3977-121-1-1',codeId:'c4',description:'90004140 ALUMINUM SHEET 3MM',total:12,remaining:12,store:'1152',cost:176940,notes:'',deliveries:[]}]}
 ];
 
 /* ---------- Estado ---------- */
@@ -433,7 +436,7 @@ function codesView(){
         </th>
         <th>Code</th><th>Notes</th><th class="c">Actions</th>
       </tr></thead>
-      <tbody>${rows.map(codeRow).join('')||`<tr><td class="nodata" colspan="7">No data available</td></tr>`}</tbody>
+      <tbody>${rows.map(codeRow).join('')||`<tr><td class="nodata" colspan="8">No data available</td></tr>`}</tbody>
     </table></div>`;
 }
 const dots=(k,label)=>`<td class="c"><button class="dotbtn" data-act="rowMenu" data-v="${k}" aria-haspopup="menu" aria-label="${label}" title="Actions">${ic('dots')}</button></td>`;
@@ -501,25 +504,33 @@ function bomList(status){
   const rows=boms.filter(b=>b.status===status);
   return `<div class="bar"><span class="sp"></span><button class="btn line" data-act="report">${ic('download')}Report</button></div>
   <div class="card tw"><table class="t" style="min-width:880px">
-    <thead><tr><th>BOM</th><th>Project</th><th>Created</th><th>Created By</th><th>Project Manager</th><th class="c">Items</th><th class="c">Actions</th></tr></thead>
-    <tbody>${rows.map(b=>`<tr class="link" tabindex="0" data-act="bom" data-v="${b.id}"><td class="w-code"><b>${esc(b.code)}</b></td><td>${esc(b.project)}</td><td class="w-code">${fmtDT(b.createdAt)}</td><td>${esc(b.createdBy)}</td><td>${esc(b.pm)}</td><td class="c">${b.items.length}</td>${dots('b:'+b.id,'Actions for '+esc(b.code))}</tr>`).join('')||`<tr><td class="nodata" colspan="7">No data available</td></tr>`}</tbody>
+    <thead><tr><th>BOM</th><th>Project</th><th>Created</th><th>Created By</th><th>Project Manager</th><th>Flow Status</th><th class="c">Items</th><th class="c">Actions</th></tr></thead>
+    <tbody>${rows.map(b=>`<tr class="link" tabindex="0" data-act="bom" data-v="${b.id}"><td class="w-code"><b>${esc(b.code)}</b></td><td>${esc(b.project)}</td><td class="w-code">${fmtDT(b.createdAt)}</td><td>${esc(b.createdBy)}</td><td>${esc(b.pm)}</td><td>${chip(flowState(b))}</td><td class="c">${b.items.length}</td>${dots('b:'+b.id,'Actions for '+esc(b.code))}</tr>`).join('')||`<tr><td class="nodata" colspan="7">No data available</td></tr>`}</tbody>
   </table></div>`;
 }
 /* Timeline del BOM: Sent, Approved y Rejected vienen del flujo; Delivery y SAP salen de cada entrega */
 const fmtTL=d=>`${iso(d)} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
+/* Estados del BOM: InProgress, Sent, Approved o Rejected. Estados del ítem: Requested, Delivered y SAP */
+const lastEvent=(b,st)=>[...b.events].reverse().find(e=>e.status===st);
+const flowState=b=>b.events.length?b.events[b.events.length-1].status:'InProgress';
+const itemState=i=>i.deliveries.length?(i.deliveries.every(d=>d.sap)?'SAP':'Delivered'):i.requestedBy?'Requested':'—';
+function deliveryType(i,d){
+  const done=i.deliveries.filter(x=>x.date<=d.date).reduce((sum,x)=>sum+x.qty,0);
+  return done>=i.total?'Total':'Partial';
+}
+const logText=l=>l.text||`${l.from||'(empty)'} → ${l.to}`;
 function timelineOf(b){
-  const fromDeliveries=b.items.flatMap(i=>i.deliveries.flatMap(d=>{
-    const list=[
-      {status:'Requested',by:d.requestedBy,at:d.requestedAt,note:`${i.code} · Production request`},
-      {status:'Delivery',by:d.by,at:d.date,note:`${i.code} · ${deliveryType(i,d)} · ${d.qty} delivered to ${d.to}`}
-    ];
-    if(d.signedBy) list.push({status:'Signed',by:d.signedBy,at:d.signedAt,note:`${i.code} · Delivery received`});
-    const log=d.movementLog||[], first=log.length?log[0].from:d.movement;
-    if(d.sap) list.push({status:'SAP',by:d.sapBy,at:d.sapAt,note:first?`SAP Movement ${first}`:'No SAP Movement yet'});
-    log.forEach(l=>list.push({status:'SAP Movement Modified',by:l.by,at:l.at,note:`${l.from||'(empty)'} → ${l.to}`}));
+  const fromItems=b.items.flatMap(i=>{
+    const list=i.requestedBy?[{status:'Requested',by:i.requestedBy,at:i.requestedAt,note:`${i.code} · Requested to Stockroom`}]:[];
+    i.deliveries.forEach(d=>{
+      list.push({status:'Delivered',by:d.by,at:d.date,note:`${i.code} · ${deliveryType(i,d)} · ${d.qty} delivered to ${d.to} · Signed by ${d.signedBy}`});
+      const log=d.sapLog||[], change=log.find(l=>!l.text), first=change?change.from:d.movement;
+      if(d.sapAt) list.push({status:'SAP',by:d.sapBy,at:d.sapAt,note:`${i.code} · ${first?`SAP Movement ${first}`:'No SAP Movement yet'}`});
+      log.forEach(l=>list.push({status:'SAP Modified',by:l.by,at:l.at,note:`${i.code} · ${logText(l)}`}));
+    });
     return list;
-  }));
-  return [{status:'Created',by:b.createdBy,at:b.createdAt},...b.events,...fromDeliveries].sort((x,y)=>x.at-y.at);
+  });
+  return [{status:'InProgress',by:b.createdBy,at:b.createdAt},...b.events,...fromItems].sort((x,y)=>x.at-y.at);
 }
 function timelineModal(b){
   openModal(`${mHead('BOM '+b.code)}<div class="mb"><ul class="tl">${timelineOf(b).map(e=>`<li>
@@ -535,29 +546,35 @@ function qr(seed){
   const f=(x,y)=>`<rect x="${x}" y="${y}" width="7" height="7"/><rect x="${x+1}" y="${y+1}" width="5" height="5" fill="#fff"/><rect x="${x+2}" y="${y+2}" width="3" height="3"/>`;
   return `<svg class="qr" viewBox="0 0 ${N} ${N}" role="img" aria-label="BOM QR code" shape-rendering="crispEdges">${out}${f(0,0)}${f(N-7,0)}${f(0,N-7)}</svg>`;
 }
+/* Producción solicita el ítem a Almacén cuando el BOM está aprobado */
+function itemStatusCell(b,i){
+  const st=itemState(i);
+  if(st!=='—') return `<span title="${i.requestedBy?'Requested by '+esc(i.requestedBy):''}">${chip(st)}</span>`;
+  return flowState(b)==='Approved'?`<button class="btn sm line" data-act="itemRequest" data-v="${b.id}|${i.index}">Request</button>`:'<span class="muted">—</span>';
+}
 function bomDetail(b){
   const empty=b.items.some(i=>i.deliveries.some(d=>d.sap&&!d.movement));
   return `<div class="bomh"><button class="iconbtn" data-act="bomClose" title="Close" aria-label="Close">${ic('close')}</button>
       <h2>Bill Of Material <b>${esc(b.code)} | ${esc(b.project)}</b></h2><span style="flex:1"></span><button class="iconbtn" data-act="timeline" data-v="${b.id}" title="Timeline" aria-label="Timeline">${ic('history')}</button></div>
     <div class="bominfo">
-      <div><p><b>STATUS:</b> ${esc(b.status)}</p><p><b>CREATED BY:</b> ${esc(b.createdBy)}</p><p><b>PROJECT MANAGER:</b> ${esc(b.pm)}</p></div>
+      <div><p><b>STATUS:</b> ${esc(b.status)}</p><p><b>CREATED BY:</b> ${esc(b.createdBy)}</p><p><b>PROJECT MANAGER:</b> ${esc(b.pm)}</p><p><b>FLOW STATUS:</b> ${esc(flowState(b))}</p></div>
       <div><p><b>CREATED:</b> ${fmtDT(b.createdAt)}</p><div class="bnotes">${ic('notes')}<div>Notes: ${esc(b.notes)}</div></div></div>
       ${qr(b.code)}
     </div>
     ${empty?`<p class="hintbar">Some deliveries already marked in SAP have no SAP Movement. You can complete them below.</p>`:''}
     <div class="items"><h3>ITEMS</h3><div class="tw"><table class="it">
-      <thead><tr><th>Index</th><th>Code</th><th>Description</th><th>Total</th><th>Remaining</th><th>Store</th><th>Unit Cost</th><th>Destination</th><th>Notes</th><th>Files</th></tr></thead>
-      <tbody>${b.items.map(i=>`<tr class="row"><td>${i.index}</td><td>${esc(i.code)}</td><td class="desc">${esc(i.description)}</td><td>${i.total}</td><td>${i.remaining}</td><td>${esc(i.store)}</td><td style="white-space:nowrap">${money(i.cost)}</td><td></td><td class="notes">${esc(i.notes)}</td><td style="color:var(--primary)">${ic('file')}</td></tr>
-        <tr><td colspan="10" class="dwrap">${deliveries(b,i)}</td></tr>`).join('')}</tbody>
+      <thead><tr><th>Index</th><th>Code</th><th>Description</th><th>Total</th><th>Remaining</th><th>Store</th><th>Unit Cost</th><th>Destination</th><th>Notes</th><th>Status</th><th>Files</th></tr></thead>
+      <tbody>${b.items.map(i=>`<tr class="row"><td>${i.index}</td><td>${esc(i.code)}</td><td class="desc">${esc(i.description)}</td><td>${i.total}</td><td>${i.remaining}</td><td>${esc(i.store)}</td><td style="white-space:nowrap">${money(i.cost)}</td><td></td><td class="notes">${esc(i.notes)}</td><td>${itemStatusCell(b,i)}</td><td style="color:var(--primary)">${ic('file')}</td></tr>
+        <tr><td colspan="11" class="dwrap">${deliveries(b,i)}</td></tr>`).join('')}</tbody>
     </table></div></div>`;
 }
 function deliveries(b,i){
   if(!i.deliveries.length) return `<div class="nodata">No deliveries yet</div>`;
   return `<div class="dbox"><table class="dv">
-    <colgroup><col style="width:14%"><col style="width:13%"><col style="width:18%"><col style="width:10%"><col style="width:21%"><col style="width:6%"><col style="width:18%"></colgroup>
-    <thead><tr><th>Delivered By</th><th>Delivered To</th><th>Date</th><th>Delivered</th><th>Notes</th><th>SAP</th><th>SAP Movement</th></tr></thead>
+    <colgroup><col style="width:13%"><col style="width:12%"><col style="width:16%"><col style="width:8%"><col style="width:17%"><col style="width:12%"><col style="width:6%"><col style="width:16%"></colgroup>
+    <thead><tr><th>Delivered By</th><th>Delivered To</th><th>Date</th><th>Delivered</th><th>Notes</th><th>Signed By</th><th>SAP</th><th>SAP Movement</th></tr></thead>
     <tbody>${i.deliveries.map((d,n)=>{const k=`${b.id}|${i.index}|${n}`;return `<tr>
-      <td>${esc(d.by)}</td><td>${esc(d.to)}</td><td>${fmtDT(d.date)}</td><td>${d.qty}</td><td>${esc(d.notes)}</td>
+      <td>${esc(d.by)}</td><td>${esc(d.to)}</td><td>${fmtDT(d.date)}</td><td>${d.qty}</td><td>${esc(d.notes)}</td><td>${esc(d.signedBy)}</td>
       <td><input type="checkbox" aria-label="Registered in SAP" data-sap="${k}" ${d.sap?'checked':''} ${b.status==='Closed'?'disabled':''}></td>
       <td class="mov ${d.err?'bad':''}">${movCell(d,k)}${d.err?`<div class="err">Enter the SAP Movement first</div>`:''}</td></tr>`;}).join('')}</tbody>
   </table></div>`;
@@ -757,37 +774,39 @@ function xlBody(cell,value,align){
   cell.border=XL_BOX;
   cell.alignment={horizontal:align||'left',vertical:'middle',wrapText:true};
 }
-/* Reporte de BOM: flujo completo, con una fila por entrega. Si el BOM no tiene entregas en el periodo, ocupa una fila */
+/* Reporte de BOM: flujo completo, con una fila por entrega. Un ítem solicitado sin entrega ocupa una fila, y un BOM sin ítems activos también */
 const BOM_HEAD=['BOM','Project','BOM Status','Created By','Creation Date','Sent By','Sent Date','Approved By','Approval Date','Rejected By','Rejection Date',
-  'Requested By','Request Date','Item Code','Description','Delivered By','Delivery Date','Delivered','Delivery Type','Signed By','Signature Date','SAP','SAP Movement','SAP Registered By','SAP Date'];
-const lastEvent=(b,st)=>[...b.events].reverse().find(e=>e.status===st);
-function deliveryType(i,d){
-  const done=i.deliveries.filter(x=>x.date<=d.date).reduce((sum,x)=>sum+x.qty,0);
-  return done>=i.total?'Total':'Partial';
-}
+  'Item Code','Description','Item Status','Requested By','Request Date','Delivered By','Delivery Date','Delivered','Delivery Type','Signed By',
+  'SAP','SAP Movement','SAP Registered By','SAP Date','SAP Changes'];
+const sapChanges=d=>(d.sapLog||[]).map(l=>`${logText(l)} (${l.by}, ${fmtDT(l.at)})`).join('; ');
 function bomReport(r){
   const inR=d=>!!d&&inRange(d,r);
-  const scope=boms.filter(b=>inR(b.createdAt)||b.events.some(e=>inR(e.at))||b.items.some(i=>i.deliveries.some(d=>inR(d.date))))
+  const scope=boms.filter(b=>inR(b.createdAt)||b.events.some(e=>inR(e.at))||b.items.some(i=>inR(i.requestedAt)||i.deliveries.some(d=>inR(d.date))))
     .sort((x,y)=>x.createdAt-y.createdAt);
-  const deliveriesOf=b=>b.items.flatMap(i=>i.deliveries.filter(d=>inR(d.date)).map(d=>({i,d}))).sort((x,y)=>x.d.date-y.d.date);
   const rows=scope.flatMap(b=>{
     const sent=b.events.find(e=>e.status==='Sent'), ok=lastEvent(b,'Approved'), no=lastEvent(b,'Rejected');
-    const base=[b.code,b.project,b.status,b.createdBy,b.createdAt,sent?sent.by:'',sent?sent.at:null,ok?ok.by:'',ok?ok.at:null,no?no.by:'',no?no.at:null];
-    const list=deliveriesOf(b);
-    if(!list.length) return [[...base,...Array(BOM_HEAD.length-base.length).fill(null)]];
-    return list.map(({i,d})=>[...base,d.requestedBy,d.requestedAt,i.code,i.description,d.by,d.date,d.qty,deliveryType(i,d),
-      d.signedBy||'',d.signedAt||null,d.sap?'Yes':'No',d.movement,d.sapBy||'',d.sapAt||null]);
+    const base=[b.code,b.project,flowState(b),b.createdBy,b.createdAt,sent?sent.by:'',sent?sent.at:null,ok?ok.by:'',ok?ok.at:null,no?no.by:'',no?no.at:null];
+    const out=b.items.flatMap(i=>{
+      const item=[i.code,i.description,itemState(i),i.requestedBy||'',i.requestedAt||null];
+      const list=i.deliveries.filter(d=>inR(d.date)).sort((x,y)=>x.date-y.date);
+      if(list.length) return list.map(d=>[...base,...item,d.by,d.date,d.qty,deliveryType(i,d),d.signedBy,
+        d.sap?'Yes':'No',d.movement,d.sap?d.sapBy:'',d.sap?d.sapAt:null,sapChanges(d)]);
+      return inR(i.requestedAt)?[[...base,...item,...Array(BOM_HEAD.length-base.length-item.length).fill(null)]]:[];
+    });
+    return out.length?out:[[...base,...Array(BOM_HEAD.length-base.length).fill(null)]];
   });
   const stage=st=>scope.filter(b=>b.events.some(e=>e.status===st&&inR(e.at))).length;
-  const all=scope.flatMap(deliveriesOf), inSap=all.filter(x=>x.d.sap);
-  const partial=all.filter(x=>deliveryType(x.i,x.d)==='Partial').length;
+  const items=scope.flatMap(b=>b.items);
+  const all=items.flatMap(i=>i.deliveries.filter(d=>inR(d.date)).map(d=>({i,d})));
+  const inSap=all.filter(x=>x.d.sap), partial=all.filter(x=>deliveryType(x.i,x.d)==='Partial').length;
+  const changes=items.flatMap(i=>i.deliveries.flatMap(d=>d.sapLog||[])).filter(l=>inR(l.at)).length;
   return {title:'BOM Report',
-    summaryHead:['','BOMs Created','Sent','Approved','Rejected','Deliveries','Partial','Total','Signed','In SAP','Not in SAP','Without SAP Movement'],
-    summary:[['BOM Flow',scope.filter(b=>inR(b.createdAt)).length,stage('Sent'),stage('Approved'),stage('Rejected'),all.length,partial,all.length-partial,
-      all.filter(x=>x.d.signedBy).length,inSap.length,all.length-inSap.length,inSap.filter(x=>!x.d.movement).length]],
+    summaryHead:['','BOMs Created','Sent','Approved','Rejected','Items Requested','Delivered','Partial','Total','In SAP','Not in SAP','Without SAP Movement','SAP Changes'],
+    summary:[['BOM Flow',scope.filter(b=>inR(b.createdAt)).length,stage('Sent'),stage('Approved'),stage('Rejected'),items.filter(i=>inR(i.requestedAt)).length,
+      all.length,partial,all.length-partial,inSap.length,all.length-inSap.length,inSap.filter(x=>!x.d.movement).length,changes]],
     head:BOM_HEAD,rows,
-    widths:[14,30,12,18,20,18,20,18,20,18,20,18,20,16,44,14,20,11,11,16,20,7,15,18,20],
-    center:[2,17,18,21,22]};
+    widths:[14,30,12,18,20,18,20,18,20,18,20,16,44,12,18,20,14,20,11,11,16,7,15,18,20,56],
+    center:[2,13,18,19,21,22]};
 }
 function codeReport(r){
   const m=reportModel(r);
@@ -851,6 +870,7 @@ const actions={
   statusPick(v){S.statusFilter=v;S.statusMenu=false;render();},
   modFilter(v){S.modFilter=v;render();},
   report(){reportModal();},
+  itemRequest(v){const [b,n]=v.split('|'),i=boms.find(x=>x.id===b).items.find(x=>x.index==n);i.requestedBy=S.user.name;i.requestedAt=new Date();render();toast('Item requested to Stockroom');},
   timeline(v){timelineModal(boms.find(b=>b.id===v));},
   rowMenu(v,el){rowMenu(v,el);},
   view(v){viewModal(codeOf(v));},
@@ -912,7 +932,7 @@ document.addEventListener('change',e=>{
     /* Solo se vuelve a pintar si la entrega ya está marcada, para no perder el clic en el check */
     if(d.sap){
       /* Cada cambio queda registrado para el timeline */
-      if(d.movement!==prev) (d.movementLog=d.movementLog||[]).push({by:S.user.name,at:new Date(),from:prev,to:d.movement});
+      if(d.movement!==prev) (d.sapLog=d.sapLog||[]).push({by:S.user.name,at:new Date(),from:prev,to:d.movement});
       d.editing=false; if(d.movement) toast('SAP Movement saved'); render();
     }
     return;
@@ -920,8 +940,10 @@ document.addEventListener('change',e=>{
   if(t.matches('[data-sap]')){
     const d=delivery(t.dataset.sap);
     if(t.checked&&!d.movement){ d.err=true; render(); return; }
+    /* La primera marcación queda como evento SAP; quitarla o volver a marcarla queda como cambio */
+    if(t.checked&&!d.sapAt){ d.sapBy=S.user.name; d.sapAt=new Date(); }
+    else (d.sapLog=d.sapLog||[]).push({by:S.user.name,at:new Date(),text:t.checked?'SAP mark restored':'SAP mark removed'});
     d.sap=t.checked; d.err=false; d.editing=false;
-    d.sapBy=t.checked?S.user.name:''; d.sapAt=t.checked?new Date():null;
     render();
   }
 });
