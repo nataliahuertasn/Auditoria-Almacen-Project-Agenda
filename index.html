@@ -46,9 +46,6 @@ svg.i{width:20px;height:20px;fill:currentColor;flex:none;vertical-align:middle}
 
 /* Header */
 header.top{display:flex;align-items:center;gap:16px;padding:8px 20px 8px 4px;background:#fafafa}
-.logo{display:flex;align-items:center;gap:6px;font-family:'Saira Semi Condensed',sans-serif;font-weight:700;font-size:31px;line-height:1;letter-spacing:.3px;color:#0d3b5c}
-.logo .mark{width:30px;height:30px;border:3px solid #0d3b5c;position:relative;overflow:hidden}
-.logo .mark:after{content:"";position:absolute;left:-6px;top:11px;width:44px;height:3px;background:#0d3b5c;transform:rotate(-45deg)}
 .top .sp{flex:1}
 .viewas{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);white-space:nowrap}
 .viewas select{border:1px solid #bdbdbd;border-radius:4px;padding:5px 6px;background:#fff;font-size:13px;max-width:230px}
@@ -63,7 +60,6 @@ header.top{display:flex;align-items:center;gap:16px;padding:8px 20px 8px 4px;bac
 /* Layout */
 .body{flex:1;display:flex;min-width:0}
 .rail{width:64px;flex:none;background:var(--rail);display:flex;flex-direction:column;align-items:center;gap:14px;padding:8px 0}
-.rail .es{font-size:8px;font-weight:700;letter-spacing:.3px;color:#6aa9d8;background:#fff;padding:7px 5px;border-radius:2px}
 .rail button{position:relative;background:none;border:0;padding:8px;color:#555;display:inline-flex}
 .rail button.on{color:var(--primary)}
 .rail svg.i{width:26px;height:26px}
@@ -240,8 +236,6 @@ table.dv td{padding:8px;text-align:center;border-top:1px solid #eee;font-size:13
 
 @media (max-width:900px){
   .top-search{display:none}
-  .logo{font-size:23px}
-  .logo .mark{width:24px;height:24px}
   .bominfo{grid-template-columns:1fr}
   .qr{justify-self:start}
   .bomh h2{font-size:17px}
@@ -381,7 +375,6 @@ const nextReqId=()=>'MR-'+p2(reqs.length+1).padStart(4,'0');
 function render(){
   $('#app').innerHTML=`<div class="app">
     <header class="top">
-      <div class="logo"><span class="mark"></span>PROJECT AGENDA</div>
       <span class="sp"></span>
       <label class="viewas">Viewing as
         <select id="viewAs">${USERS.map(u=>`<option value="${u.id}" ${u===S.user?'selected':''}>${esc(u.name)} · ${esc(u.role)}</option>`).join('')}</select>
@@ -392,7 +385,6 @@ function render(){
     </header>
     <div class="body">
       <nav class="rail" aria-label="Modules">
-        <span class="es">ESMETALS</span>
         <button title="Clients">${ic('person')}</button>
         <button title="Staff">${ic('person')}</button>
         <button title="Field">${ic('person')}</button>
