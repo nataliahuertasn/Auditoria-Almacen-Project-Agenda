@@ -15,7 +15,7 @@ Abra `index.html` en el navegador (doble clic). Necesita internet para cargar la
 - **Report:** calendario para elegir el rango, por defecto el mes actual, y descarga de un Excel con el consolidado arriba y el detalle debajo.
 - **Viewing as (encabezado):** cambia de usuario para probar permisos. Solo el rol Stockroom edita o rechaza solicitudes.
 
-El enlace normal muestra las pestañas Code Request y Modification Requests. Los BOM tienen su propio enlace, con *SAP Movement*, timeline (Sent, Approved, Rejected, Delivery, SAP y SAP Movement Modified) y reporte de entregas: https://nataliahuertasn.github.io/Auditoria-Almacen-Project-Agenda/?view=bom
+El enlace normal muestra las pestañas Code Request y Modification Requests. Los BOM tienen su propio enlace, con *SAP Movement*, timeline y reporte con el flujo completo (Created, Sent, Approved o Rejected, Requested, Delivery parcial o total, Signed, SAP y SAP Movement Modified): https://nataliahuertasn.github.io/Auditoria-Almacen-Project-Agenda/?view=bom
 
 ## Reglas pendientes de confirmar
 

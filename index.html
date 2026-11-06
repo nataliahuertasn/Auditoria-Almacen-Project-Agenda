@@ -229,6 +229,9 @@ table.dv td{padding:8px;text-align:center;border-top:1px solid #eee;font-size:13
 .tdot.Delivery{background:#fb8c00}
 .tdot.SAP{background:#42a5f5}
 .tdot.Modified{background:#8e24aa}
+.tdot.Created{background:#757575}
+.tdot.Requested{background:#00acc1}
+.tdot.Signed{background:#3949ab}
 .hintbar{background:var(--primary-l);color:#0c4a86;font-size:13px;border-radius:4px;padding:8px 12px;margin:0 0 14px}
 
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#323232;color:#fff;padding:10px 18px;border-radius:4px;box-shadow:0 4px 14px #0005;z-index:80;max-width:calc(100vw - 32px)}
@@ -339,22 +342,24 @@ const boms=[
   {id:'b1',events:[{status:'Sent',by:'Daniela Torres',at:mon(-1,8,17,30)},{status:'Approved',by:'Andrés Pineda',at:mon(-1,9,8,5)}],code:'4108-332-6',project:'4108 Harbor Tower Group 2',status:'Closed',createdBy:'Daniela Torres',pm:'Andrés Pineda',createdAt:mon(-1,8,17,13),notes:'4914027761',
     items:[
       {index:1,code:'4108-332-6-1',codeId:'c1',description:'90003884 HUACAL GENERICO',total:8,remaining:0,store:'1152',cost:980450.25,notes:'7 und ancho 950 mm, largo 3200 mm, alto 2150 mm. 1 und ancho 950 mm, largo 3000, alto 2150 mm.',
-       deliveries:[{by:'Stockroom2',to:'Packing',date:mon(-1,9,22,9),qty:8,notes:'J. RAMIREZ / E. TORRES',sap:true,sapBy:'Carolina Ruiz',sapAt:mon(-1,10,8,15),movement:''}]},
+       deliveries:[{by:'Stockroom2',to:'Packing',date:mon(-1,9,22,9),qty:8,notes:'J. RAMIREZ / E. TORRES',requestedBy:'Julián Rojas',requestedAt:mon(-1,9,16,0),signedBy:'J. Ramirez',signedAt:mon(-1,9,22,20),sap:true,sapBy:'Carolina Ruiz',sapAt:mon(-1,10,8,15),movement:''}]},
       {index:2,code:'4108-332-6-2',codeId:'c5',description:'90003790 ACM PANEL 4MM',total:30,remaining:0,store:'1152',cost:145300,notes:'Podium level',
-       deliveries:[{by:'Stockroom1',to:'Fabrication',date:mon(-1,10,11,30),qty:30,notes:'M. GOMEZ',sap:true,sapBy:'Carolina Ruiz',sapAt:mon(-1,10,15,0),movement:'4914027802'}]}
+       deliveries:[{by:'Stockroom1',to:'Fabrication',date:mon(-1,10,11,30),qty:30,notes:'M. GOMEZ',requestedBy:'Marcela Díaz',requestedAt:mon(-1,10,9,0),signedBy:'M. Gomez',signedAt:mon(-1,10,11,45),sap:true,sapBy:'Carolina Ruiz',sapAt:mon(-1,10,15,0),movement:'4914027802'}]}
     ]},
   {id:'b2',events:[{status:'Sent',by:'Daniela Torres',at:cur(2,10,40)},{status:'Approved',by:'Andrés Pineda',at:cur(2,15,10)}],code:'4108-340-2',project:'4108 Harbor Tower Group 3',status:'Open',createdBy:'Daniela Torres',pm:'Andrés Pineda',createdAt:cur(2,10,20),notes:'',
     items:[
       {index:1,code:'4108-340-2-1',codeId:'c2',description:'90004127 ALUMINUM EXTRUSION 6063-T5 6M',total:120,remaining:40,store:'1152',cost:212800.5,notes:'Mullions, levels 3 to 6',
        deliveries:[
-         {by:'Stockroom2',to:'Fabrication',date:cur(1,9,40),qty:50,notes:'J. RAMIREZ',sap:true,sapBy:'Carolina Ruiz',sapAt:cur(1,14,0),movement:'4914031190',movementLog:[{by:'Carolina Ruiz',at:cur(1,15,30),from:'4914031170',to:'4914031190'}]},
-         {by:'Stockroom2',to:'Fabrication',date:cur(0,8,5),qty:30,notes:'E. TORRES',sap:false,movement:''}
+         {by:'Stockroom2',to:'Fabrication',date:cur(1,9,40),qty:50,notes:'J. RAMIREZ',requestedBy:'Julián Rojas',requestedAt:cur(1,8,30),signedBy:'J. Ramirez',signedAt:cur(1,9,55),sap:true,sapBy:'Carolina Ruiz',sapAt:cur(1,14,0),movement:'4914031190',movementLog:[{by:'Carolina Ruiz',at:cur(1,15,30),from:'4914031170',to:'4914031190'}]},
+         {by:'Stockroom2',to:'Fabrication',date:cur(0,8,5),qty:30,notes:'E. TORRES',requestedBy:'Julián Rojas',requestedAt:cur(0,7,30),signedBy:'',signedAt:null,sap:false,movement:''}
        ]},
       {index:2,code:'4108-340-2-2',codeId:'c3',description:'90004133 ANGLE 2X2 IN ANODIZED',total:60,remaining:60,store:'1149',cost:58200,notes:'',deliveries:[]}
     ]},
   {id:'b3',events:[{status:'Sent',by:'Felipe Arango',at:cur(1,14,10)},{status:'Rejected',by:'Andrés Pineda',at:cur(1,15,0),note:'Store is missing on item 1'},{status:'Sent',by:'Felipe Arango',at:cur(1,16,20)},{status:'Approved',by:'Andrés Pineda',at:cur(0,8,30)}],code:'3977-118-1',project:'3977 Riverside Plaza Group 1',status:'Open',createdBy:'Felipe Arango',pm:'Andrés Pineda',createdAt:cur(1,14,0),notes:'',
-    items:[{index:1,code:'3977-118-1-1',codeId:'c4',description:'90004140 ALUMINUM SHEET 3MM',total:45,remaining:15,store:'1152',cost:176940,notes:'Soffit panels',
-      deliveries:[{by:'Stockroom1',to:'Fabrication',date:cur(0,9,15),qty:30,notes:'M. GOMEZ',sap:false,movement:''}]}]}
+    items:[{index:1,code:'3977-118-1-1',codeId:'c4',description:'90004140 ALUMINUM SHEET 3MM',total:30,remaining:0,store:'1152',cost:176940,notes:'Soffit panels',
+      deliveries:[{by:'Stockroom1',to:'Fabrication',date:cur(0,9,15),qty:30,notes:'M. GOMEZ',requestedBy:'Marcela Díaz',requestedAt:cur(0,8,45),signedBy:'M. Gomez',signedAt:cur(0,9,30),sap:false,movement:''}]}]},
+  {id:'b4',events:[{status:'Sent',by:'Felipe Arango',at:cur(0,7,40)},{status:'Rejected',by:'Andrés Pineda',at:cur(0,8,0),note:'Quantities do not match the shop drawings'}],code:'3977-120-3',project:'3977 Riverside Plaza Group 2',status:'Open',createdBy:'Felipe Arango',pm:'Andrés Pineda',createdAt:cur(0,7,25),notes:'',
+    items:[{index:1,code:'3977-120-3-1',codeId:'c3',description:'90004133 ANGLE 2X2 IN ANODIZED',total:24,remaining:24,store:'1149',cost:58200,notes:'',deliveries:[]}]}
 ];
 
 /* ---------- Estado ---------- */
@@ -504,13 +509,17 @@ function bomList(status){
 const fmtTL=d=>`${iso(d)} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
 function timelineOf(b){
   const fromDeliveries=b.items.flatMap(i=>i.deliveries.flatMap(d=>{
-    const list=[{status:'Delivery',by:d.by,at:d.date,note:`${i.code} · ${d.qty} delivered to ${d.to}`}];
+    const list=[
+      {status:'Requested',by:d.requestedBy,at:d.requestedAt,note:`${i.code} · Production request`},
+      {status:'Delivery',by:d.by,at:d.date,note:`${i.code} · ${deliveryType(i,d)} · ${d.qty} delivered to ${d.to}`}
+    ];
+    if(d.signedBy) list.push({status:'Signed',by:d.signedBy,at:d.signedAt,note:`${i.code} · Delivery received`});
     const log=d.movementLog||[], first=log.length?log[0].from:d.movement;
     if(d.sap) list.push({status:'SAP',by:d.sapBy,at:d.sapAt,note:first?`SAP Movement ${first}`:'No SAP Movement yet'});
     log.forEach(l=>list.push({status:'SAP Movement Modified',by:l.by,at:l.at,note:`${l.from||'(empty)'} → ${l.to}`}));
     return list;
   }));
-  return [...b.events,...fromDeliveries].sort((x,y)=>x.at-y.at);
+  return [{status:'Created',by:b.createdBy,at:b.createdAt},...b.events,...fromDeliveries].sort((x,y)=>x.at-y.at);
 }
 function timelineModal(b){
   openModal(`${mHead('BOM '+b.code)}<div class="mb"><ul class="tl">${timelineOf(b).map(e=>`<li>
@@ -748,19 +757,37 @@ function xlBody(cell,value,align){
   cell.border=XL_BOX;
   cell.alignment={horizontal:align||'left',vertical:'middle',wrapText:true};
 }
-/* Contenido del reporte de BOM: una fila por entrega dentro del rango */
-const BOM_HEAD=['BOM','Project','BOM Status','Request Date','Creation Date','Item Code','Description','Delivered By','Delivered To','Date','Delivered','Notes','SAP','SAP Movement'];
+/* Reporte de BOM: flujo completo, con una fila por entrega. Si el BOM no tiene entregas en el periodo, ocupa una fila */
+const BOM_HEAD=['BOM','Project','BOM Status','Created By','Creation Date','Sent By','Sent Date','Approved By','Approval Date','Rejected By','Rejection Date',
+  'Requested By','Request Date','Item Code','Description','Delivered By','Delivery Date','Delivered','Delivery Type','Signed By','Signature Date','SAP','SAP Movement','SAP Registered By','SAP Date'];
+const lastEvent=(b,st)=>[...b.events].reverse().find(e=>e.status===st);
+function deliveryType(i,d){
+  const done=i.deliveries.filter(x=>x.date<=d.date).reduce((sum,x)=>sum+x.qty,0);
+  return done>=i.total?'Total':'Partial';
+}
 function bomReport(r){
-  const list=boms.flatMap(b=>b.items.flatMap(i=>i.deliveries.filter(d=>inRange(d.date,r)).map(d=>({b,i,d}))))
-    .sort((x,y)=>x.d.date-y.d.date);
-  const inSap=list.filter(x=>x.d.sap);
+  const inR=d=>!!d&&inRange(d,r);
+  const scope=boms.filter(b=>inR(b.createdAt)||b.events.some(e=>inR(e.at))||b.items.some(i=>i.deliveries.some(d=>inR(d.date))))
+    .sort((x,y)=>x.createdAt-y.createdAt);
+  const deliveriesOf=b=>b.items.flatMap(i=>i.deliveries.filter(d=>inR(d.date)).map(d=>({i,d}))).sort((x,y)=>x.d.date-y.d.date);
+  const rows=scope.flatMap(b=>{
+    const sent=b.events.find(e=>e.status==='Sent'), ok=lastEvent(b,'Approved'), no=lastEvent(b,'Rejected');
+    const base=[b.code,b.project,b.status,b.createdBy,b.createdAt,sent?sent.by:'',sent?sent.at:null,ok?ok.by:'',ok?ok.at:null,no?no.by:'',no?no.at:null];
+    const list=deliveriesOf(b);
+    if(!list.length) return [[...base,...Array(BOM_HEAD.length-base.length).fill(null)]];
+    return list.map(({i,d})=>[...base,d.requestedBy,d.requestedAt,i.code,i.description,d.by,d.date,d.qty,deliveryType(i,d),
+      d.signedBy||'',d.signedAt||null,d.sap?'Yes':'No',d.movement,d.sapBy||'',d.sapAt||null]);
+  });
+  const stage=st=>scope.filter(b=>b.events.some(e=>e.status===st&&inR(e.at))).length;
+  const all=scope.flatMap(deliveriesOf), inSap=all.filter(x=>x.d.sap);
+  const partial=all.filter(x=>deliveryType(x.i,x.d)==='Partial').length;
   return {title:'BOM Report',
-    summaryHead:['','Total','In SAP','Not in SAP','Without SAP Movement'],
-    summary:[['Deliveries',list.length,inSap.length,list.length-inSap.length,inSap.filter(x=>!x.d.movement).length]],
-    head:BOM_HEAD,
-    rows:list.map(({b,i,d})=>[b.code,b.project,b.status,b.events.find(e=>e.status==='Sent').at,b.createdAt,i.code,i.description,d.by,d.to,d.date,d.qty,d.notes,d.sap?'Yes':'No',d.movement]),
-    widths:[14,30,14,20,20,16,46,16,16,20,13,26,8,16],
-    center:[2,10,12,13]};
+    summaryHead:['','BOMs Created','Sent','Approved','Rejected','Deliveries','Partial','Total','Signed','In SAP','Not in SAP','Without SAP Movement'],
+    summary:[['BOM Flow',scope.filter(b=>inR(b.createdAt)).length,stage('Sent'),stage('Approved'),stage('Rejected'),all.length,partial,all.length-partial,
+      all.filter(x=>x.d.signedBy).length,inSap.length,all.length-inSap.length,inSap.filter(x=>!x.d.movement).length]],
+    head:BOM_HEAD,rows,
+    widths:[14,30,12,18,20,18,20,18,20,18,20,18,20,16,44,14,20,11,11,16,20,7,15,18,20],
+    center:[2,17,18,21,22]};
 }
 function codeReport(r){
   const m=reportModel(r);
