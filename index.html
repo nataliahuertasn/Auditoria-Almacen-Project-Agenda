@@ -749,7 +749,7 @@ function xlBody(cell,value,align){
   cell.alignment={horizontal:align||'left',vertical:'middle',wrapText:true};
 }
 /* Contenido del reporte de BOM: una fila por entrega dentro del rango */
-const BOM_HEAD=['BOM','Project','BOM Status','Item Code','Description','Delivered By','Delivered To','Date','Delivered','Notes','SAP','SAP Movement'];
+const BOM_HEAD=['BOM','Project','BOM Status','Request Date','Creation Date','Item Code','Description','Delivered By','Delivered To','Date','Delivered','Notes','SAP','SAP Movement'];
 function bomReport(r){
   const list=boms.flatMap(b=>b.items.flatMap(i=>i.deliveries.filter(d=>inRange(d.date,r)).map(d=>({b,i,d}))))
     .sort((x,y)=>x.d.date-y.d.date);
@@ -758,9 +758,9 @@ function bomReport(r){
     summaryHead:['','Total','In SAP','Not in SAP','Without SAP Movement'],
     summary:[['Deliveries',list.length,inSap.length,list.length-inSap.length,inSap.filter(x=>!x.d.movement).length]],
     head:BOM_HEAD,
-    rows:list.map(({b,i,d})=>[b.code,b.project,b.status,i.code,i.description,d.by,d.to,d.date,d.qty,d.notes,d.sap?'Yes':'No',d.movement]),
-    widths:[14,30,14,16,46,16,16,20,13,26,8,16],
-    center:[2,8,10,11]};
+    rows:list.map(({b,i,d})=>[b.code,b.project,b.status,b.events.find(e=>e.status==='Sent').at,b.createdAt,i.code,i.description,d.by,d.to,d.date,d.qty,d.notes,d.sap?'Yes':'No',d.movement]),
+    widths:[14,30,14,20,20,16,46,16,16,20,13,26,8,16],
+    center:[2,10,12,13]};
 }
 function codeReport(r){
   const m=reportModel(r);
