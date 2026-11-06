@@ -45,12 +45,10 @@ svg.i{width:20px;height:20px;fill:currentColor;flex:none;vertical-align:middle}
 .app{display:flex;flex-direction:column;min-height:100vh}
 
 /* Header */
-header.top{display:flex;align-items:center;gap:16px;padding:8px 20px 8px 4px;background:#fafafa}
+header.top{display:flex;align-items:center;gap:16px;padding:8px 20px;background:#fafafa}
 .top .sp{flex:1}
 .viewas{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);white-space:nowrap}
 .viewas select{border:1px solid #bdbdbd;border-radius:4px;padding:5px 6px;background:#fff;font-size:13px;max-width:230px}
-.top-search{display:flex;align-items:center;gap:8px;border:1px solid #9e9e9e;border-radius:24px;padding:7px 14px;color:var(--muted);width:280px;background:#fff}
-.top-search input{border:0;outline:0;width:100%;background:none}
 .iconbtn{background:none;border:0;padding:6px;border-radius:50%;color:#555;position:relative;display:inline-flex}
 .iconbtn:hover{background:#0000000d}
 .iconbtn:focus-visible,.btn:focus-visible,.tab:focus-visible,.pill:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
@@ -59,12 +57,6 @@ header.top{display:flex;align-items:center;gap:16px;padding:8px 20px 8px 4px;bac
 
 /* Layout */
 .body{flex:1;display:flex;min-width:0}
-.rail{width:64px;flex:none;background:var(--rail);display:flex;flex-direction:column;align-items:center;gap:14px;padding:8px 0}
-.rail button{position:relative;background:none;border:0;padding:8px;color:#555;display:inline-flex}
-.rail button.on{color:var(--primary)}
-.rail svg.i{width:26px;height:26px}
-.rail .badge{top:-5px;right:-8px}
-.rail .end{margin-top:auto}
 .main{flex:1;min-width:0;display:flex;flex-direction:column}
 .tabs{display:flex;background:var(--head);overflow-x:auto;scrollbar-width:none}
 .tab{border:0;background:none;padding:18px 20px;font:600 15px 'Open Sans',Roboto,sans-serif;letter-spacing:1.1px;color:#6a6a6a;text-transform:uppercase;white-space:nowrap;display:flex;align-items:center;gap:8px}
@@ -235,7 +227,6 @@ table.dv td{padding:8px;text-align:center;border-top:1px solid #eee;font-size:13
 .toast.bad{background:#b71c1c}
 
 @media (max-width:900px){
-  .top-search{display:none}
   .bominfo{grid-template-columns:1fr}
   .qr{justify-self:start}
   .bomh h2{font-size:17px}
@@ -244,7 +235,6 @@ table.dv td{padding:8px;text-align:center;border-top:1px solid #eee;font-size:13
   header.top{padding:8px 16px;flex-wrap:wrap;gap:8px}
   .viewas{order:3;width:100%}
   .viewas select{flex:1;max-width:none}
-  .rail{display:none}
   .page{padding:16px}
   .tab{padding:14px 12px;font-size:13px}
   .grid2{grid-template-columns:1fr}
@@ -379,20 +369,8 @@ function render(){
       <label class="viewas">Viewing as
         <select id="viewAs">${USERS.map(u=>`<option value="${u.id}" ${u===S.user?'selected':''}>${esc(u.name)} · ${esc(u.role)}</option>`).join('')}</select>
       </label>
-      <div class="top-search">${ic('search')}<input placeholder="Search" aria-label="Search"></div>
-      <button class="iconbtn" title="Notifications">${ic('bell')}<span class="badge">41</span></button>
-      <button class="iconbtn" title="Account">${ic('account')}</button>
     </header>
     <div class="body">
-      <nav class="rail" aria-label="Modules">
-        <button title="Clients">${ic('person')}</button>
-        <button title="Staff">${ic('person')}</button>
-        <button title="Field">${ic('person')}</button>
-        <button class="on" title="Stock Room">${ic('tools')}<span class="badge">39</span></button>
-        <button title="Reports">${ic('list')}</button>
-        <button title="Settings">${ic('gear')}</button>
-        <button class="end" title="Logout">${ic('logout')}</button>
-      </nav>
       <div class="main">
         <div class="tabs" role="tablist">${TABS.map(([k,l])=>`<button role="tab" aria-selected="${S.tab===k}" class="tab ${S.tab===k?'on':''}" data-act="tab" data-v="${k}">${l}${k==='mods'&&pendingCount()?`<span class="count">${pendingCount()}</span>`:''}</button>`).join('')}</div>
         <section class="page">${pageView()}</section>
